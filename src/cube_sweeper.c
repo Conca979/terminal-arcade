@@ -362,6 +362,187 @@ void zoom_camera(float delta) {
     if (distanceFromCam > max_dist) distanceFromCam = max_dist;
 }
 
+bool verify_surface_board_solvable(int safe_id) {
+    int *sim_state = (int*)calloc(T, sizeof(int));
+    int *queue = (int*)malloc(sizeof(int) * T);
+    int *frontier = (int*)malloc(sizeof(int) * T);
+    int q_head = 0, q_tail = 0;
+    
+    sim_state[safe_id] = 1;
+    queue[q_tail++] = safe_id;
+    
+    while(q_head < q_tail) {
+        int cur = queue[q_head++];
+        if (tiles[cur].adjacent_mines == 0) {
+            for(int j=0; j<tiles[cur].num_neighbors; j++) {
+                int nid = tiles[cur].neighbors[j]->id;
+                if (sim_state[nid] == 0) {
+                    sim_state[nid] = 1;
+                    queue[q_tail++] = nid;
+                }
+            }
+        }
+    }
+    
+    bool progress = true;
+    while(progress) {
+        progress = false;
+        
+        // Tier 1: Direct counting
+        for(int i=0; i<T; i++) {
+            if (sim_state[i] != 1 || tiles[i].adjacent_mines == 0) continue;
+            
+            int hidden_count = 0;
+            int flagged_count = 0;
+            for(int j=0; j<tiles[i].num_neighbors; j++) {
+                int nid = tiles[i].neighbors[j]->id;
+                if (sim_state[nid] == 0) hidden_count++;
+                else if (sim_state[nid] == 2) flagged_count++;
+            }
+            
+            int needed = tiles[i].adjacent_mines - flagged_count;
+            if (hidden_count > 0) {
+                if (hidden_count == needed) {
+                    for(int j=0; j<tiles[i].num_neighbors; j++) {
+                        int nid = tiles[i].neighbors[j]->id;
+                        if (sim_state[nid] == 0) {
+                            sim_state[nid] = 2;
+                            progress = true;
+                        }
+                    }
+                } else if (needed == 0) {
+                    for(int j=0; j<tiles[i].num_neighbors; j++) {
+                        int nid = tiles[i].neighbors[j]->id;
+                        if (sim_state[nid] == 0) {
+                            sim_state[nid] = 1;
+                            queue[q_tail++] = nid;
+                            progress = true;
+                        }
+                    }
+                }
+            }
+        }
+        
+        while(q_head < q_tail) {
+            int cur = queue[q_head++];
+            if (tiles[cur].adjacent_mines == 0) {
+                for(int j=0; j<tiles[cur].num_neighbors; j++) {
+                    int nid = tiles[cur].neighbors[j]->id;
+                    if (sim_state[nid] == 0) {
+                        sim_state[nid] = 1;
+                        queue[q_tail++] = nid;
+                        progress = true;
+                    }
+                }
+            }
+        }
+        
+        if (progress) continue;
+        
+        // Tier 2: Subset reduction
+        int f_count = 0;
+        for(int i=0; i<T; i++) {
+            if (sim_state[i] == 1 && tiles[i].adjacent_mines > 0) {
+                for(int j=0; j<tiles[i].num_neighbors; j++) {
+                    if (sim_state[tiles[i].neighbors[j]->id] == 0) {
+                        frontier[f_count++] = i;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        for(int a=0; a<f_count && !progress; a++) {
+            int idA = frontier[a];
+            int neededA = tiles[idA].adjacent_mines;
+            int hiddenA[16];
+            int hCountA = 0;
+            for(int j=0; j<tiles[idA].num_neighbors; j++) {
+                int nid = tiles[idA].neighbors[j]->id;
+                if (sim_state[nid] == 2) neededA--;
+                else if (sim_state[nid] == 0) hiddenA[hCountA++] = nid;
+            }
+            if (hCountA == 0) continue;
+            
+            for(int b=0; b<f_count && !progress; b++) {
+                if (a == b) continue;
+                int idB = frontier[b];
+                int neededB = tiles[idB].adjacent_mines;
+                int hiddenB[16];
+                int hCountB = 0;
+                for(int j=0; j<tiles[idB].num_neighbors; j++) {
+                    int nid = tiles[idB].neighbors[j]->id;
+                    if (sim_state[nid] == 2) neededB--;
+                    else if (sim_state[nid] == 0) hiddenB[hCountB++] = nid;
+                }
+                if (hCountB <= hCountA) continue;
+                
+                bool is_subset = true;
+                for(int ia=0; ia<hCountA; ia++) {
+                    bool found = false;
+                    for(int ib=0; ib<hCountB; ib++) {
+                        if (hiddenA[ia] == hiddenB[ib]) { found = true; break; }
+                    }
+                    if (!found) { is_subset = false; break; }
+                }
+                
+                if (is_subset) {
+                    int diff[16];
+                    int diff_count = 0;
+                    for(int ib=0; ib<hCountB; ib++) {
+                        bool inA = false;
+                        for(int ia=0; ia<hCountA; ia++) {
+                            if (hiddenB[ib] == hiddenA[ia]) { inA = true; break; }
+                        }
+                        if (!inA) diff[diff_count++] = hiddenB[ib];
+                    }
+                    
+                    int diff_needed = neededB - neededA;
+                    if (diff_count > 0) {
+                        if (diff_needed == 0) {
+                            for(int d=0; d<diff_count; d++) {
+                                sim_state[diff[d]] = 1;
+                                queue[q_tail++] = diff[d];
+                                progress = true;
+                            }
+                        } else if (diff_needed == diff_count) {
+                            for(int d=0; d<diff_count; d++) {
+                                sim_state[diff[d]] = 2;
+                                progress = true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        while(q_head < q_tail) {
+            int cur = queue[q_head++];
+            if (tiles[cur].adjacent_mines == 0) {
+                for(int j=0; j<tiles[cur].num_neighbors; j++) {
+                    int nid = tiles[cur].neighbors[j]->id;
+                    if (sim_state[nid] == 0) {
+                        sim_state[nid] = 1;
+                        queue[q_tail++] = nid;
+                        progress = true;
+                    }
+                }
+            }
+        }
+    }
+    
+    int revealed_count = 0;
+    for(int i=0; i<T; i++) {
+        if (sim_state[i] == 1) revealed_count++;
+    }
+    
+    bool solvable = (revealed_count == T - M);
+    free(sim_state);
+    free(queue);
+    free(frontier);
+    return solvable;
+}
+
 void place_mines(int safe_id) {
     int* pool = (int*)malloc(sizeof(int) * T);
     int pool_size = 0;
@@ -375,26 +556,39 @@ void place_mines(int safe_id) {
         if (!safe) pool[pool_size++] = i;
     }
     
-    for (int i = pool_size - 1; i > 0; i--) {
-        int j = rand() % (i + 1);
-        int temp = pool[i];
-        pool[i] = pool[j];
-        pool[j] = temp;
-    }
-    
-    for(int i=0; i<M && i<pool_size; i++) {
-        tiles[pool[i]].is_mine = true;
-    }
-    free(pool);
-    
-    for(int i=0; i<T; i++) {
-        if (tiles[i].is_mine) continue;
-        int count = 0;
-        for(int j=0; j<tiles[i].num_neighbors; j++) {
-            if (tiles[i].neighbors[j]->is_mine) count++;
+    int max_attempts = 1000;
+    for(int attempt = 0; attempt < max_attempts; attempt++) {
+        for(int i=0; i<T; i++) {
+            tiles[i].is_mine = false;
+            tiles[i].adjacent_mines = 0;
         }
-        tiles[i].adjacent_mines = count;
+        
+        for (int i = pool_size - 1; i > 0; i--) {
+            int j = rand() % (i + 1);
+            int temp = pool[i];
+            pool[i] = pool[j];
+            pool[j] = temp;
+        }
+        
+        for(int i=0; i<M && i<pool_size; i++) {
+            tiles[pool[i]].is_mine = true;
+        }
+        
+        for(int i=0; i<T; i++) {
+            if (tiles[i].is_mine) continue;
+            int count = 0;
+            for(int j=0; j<tiles[i].num_neighbors; j++) {
+                if (tiles[i].neighbors[j]->is_mine) count++;
+            }
+            tiles[i].adjacent_mines = count;
+        }
+        
+        if (verify_surface_board_solvable(safe_id)) {
+            break; // 100% no-guess board found!
+        }
     }
+    
+    free(pool);
 }
 
 void reveal_cascade(int id) {
@@ -472,6 +666,187 @@ void generate_block_grid() {
     distanceFromCam = fmaxf(H, fmaxf(W, D)) * 1.5f + 10.0f;
 }
 
+bool verify_block_board_solvable(int safe_id) {
+    int *sim_state = (int*)calloc(total_blocks, sizeof(int));
+    int *queue = (int*)malloc(sizeof(int) * total_blocks);
+    int *frontier = (int*)malloc(sizeof(int) * total_blocks);
+    int q_head = 0, q_tail = 0;
+    
+    sim_state[safe_id] = 1;
+    queue[q_tail++] = safe_id;
+    
+    while(q_head < q_tail) {
+        int cur = queue[q_head++];
+        if (blocks[cur].adjacent_mines == 0) {
+            for(int j=0; j<blocks[cur].num_neighbors; j++) {
+                int nid = blocks[cur].neighbors[j];
+                if (sim_state[nid] == 0) {
+                    sim_state[nid] = 1;
+                    queue[q_tail++] = nid;
+                }
+            }
+        }
+    }
+    
+    bool progress = true;
+    while(progress) {
+        progress = false;
+        
+        // Tier 1: Direct counting
+        for(int i=0; i<total_blocks; i++) {
+            if (sim_state[i] != 1 || blocks[i].adjacent_mines == 0) continue;
+            
+            int hidden_count = 0;
+            int flagged_count = 0;
+            for(int j=0; j<blocks[i].num_neighbors; j++) {
+                int nid = blocks[i].neighbors[j];
+                if (sim_state[nid] == 0) hidden_count++;
+                else if (sim_state[nid] == 2) flagged_count++;
+            }
+            
+            int needed = blocks[i].adjacent_mines - flagged_count;
+            if (hidden_count > 0) {
+                if (hidden_count == needed) {
+                    for(int j=0; j<blocks[i].num_neighbors; j++) {
+                        int nid = blocks[i].neighbors[j];
+                        if (sim_state[nid] == 0) {
+                            sim_state[nid] = 2;
+                            progress = true;
+                        }
+                    }
+                } else if (needed == 0) {
+                    for(int j=0; j<blocks[i].num_neighbors; j++) {
+                        int nid = blocks[i].neighbors[j];
+                        if (sim_state[nid] == 0) {
+                            sim_state[nid] = 1;
+                            queue[q_tail++] = nid;
+                            progress = true;
+                        }
+                    }
+                }
+            }
+        }
+        
+        while(q_head < q_tail) {
+            int cur = queue[q_head++];
+            if (blocks[cur].adjacent_mines == 0) {
+                for(int j=0; j<blocks[cur].num_neighbors; j++) {
+                    int nid = blocks[cur].neighbors[j];
+                    if (sim_state[nid] == 0) {
+                        sim_state[nid] = 1;
+                        queue[q_tail++] = nid;
+                        progress = true;
+                    }
+                }
+            }
+        }
+        
+        if (progress) continue;
+        
+        // Tier 2: Subset reduction
+        int f_count = 0;
+        for(int i=0; i<total_blocks; i++) {
+            if (sim_state[i] == 1 && blocks[i].adjacent_mines > 0) {
+                for(int j=0; j<blocks[i].num_neighbors; j++) {
+                    if (sim_state[blocks[i].neighbors[j]] == 0) {
+                        frontier[f_count++] = i;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        for(int a=0; a<f_count && !progress; a++) {
+            int idA = frontier[a];
+            int neededA = blocks[idA].adjacent_mines;
+            int hiddenA[32];
+            int hCountA = 0;
+            for(int j=0; j<blocks[idA].num_neighbors; j++) {
+                int nid = blocks[idA].neighbors[j];
+                if (sim_state[nid] == 2) neededA--;
+                else if (sim_state[nid] == 0) hiddenA[hCountA++] = nid;
+            }
+            if (hCountA == 0) continue;
+            
+            for(int b=0; b<f_count && !progress; b++) {
+                if (a == b) continue;
+                int idB = frontier[b];
+                int neededB = blocks[idB].adjacent_mines;
+                int hiddenB[32];
+                int hCountB = 0;
+                for(int j=0; j<blocks[idB].num_neighbors; j++) {
+                    int nid = blocks[idB].neighbors[j];
+                    if (sim_state[nid] == 2) neededB--;
+                    else if (sim_state[nid] == 0) hiddenB[hCountB++] = nid;
+                }
+                if (hCountB <= hCountA) continue;
+                
+                bool is_subset = true;
+                for(int ia=0; ia<hCountA; ia++) {
+                    bool found = false;
+                    for(int ib=0; ib<hCountB; ib++) {
+                        if (hiddenA[ia] == hiddenB[ib]) { found = true; break; }
+                    }
+                    if (!found) { is_subset = false; break; }
+                }
+                
+                if (is_subset) {
+                    int diff[32];
+                    int diff_count = 0;
+                    for(int ib=0; ib<hCountB; ib++) {
+                        bool inA = false;
+                        for(int ia=0; ia<hCountA; ia++) {
+                            if (hiddenB[ib] == hiddenA[ia]) { inA = true; break; }
+                        }
+                        if (!inA) diff[diff_count++] = hiddenB[ib];
+                    }
+                    
+                    int diff_needed = neededB - neededA;
+                    if (diff_count > 0) {
+                        if (diff_needed == 0) {
+                            for(int d=0; d<diff_count; d++) {
+                                sim_state[diff[d]] = 1;
+                                queue[q_tail++] = diff[d];
+                                progress = true;
+                            }
+                        } else if (diff_needed == diff_count) {
+                            for(int d=0; d<diff_count; d++) {
+                                sim_state[diff[d]] = 2;
+                                progress = true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        while(q_head < q_tail) {
+            int cur = queue[q_head++];
+            if (blocks[cur].adjacent_mines == 0) {
+                for(int j=0; j<blocks[cur].num_neighbors; j++) {
+                    int nid = blocks[cur].neighbors[j];
+                    if (sim_state[nid] == 0) {
+                        sim_state[nid] = 1;
+                        queue[q_tail++] = nid;
+                        progress = true;
+                    }
+                }
+            }
+        }
+    }
+    
+    int revealed_count = 0;
+    for(int i=0; i<total_blocks; i++) {
+        if (sim_state[i] == 1) revealed_count++;
+    }
+    
+    bool solvable = (revealed_count == total_blocks - M);
+    free(sim_state);
+    free(queue);
+    free(frontier);
+    return solvable;
+}
+
 void place_block_mines(int safe_id) {
     int* pool = (int*)malloc(sizeof(int) * total_blocks);
     int pool_size = 0;
@@ -485,26 +860,39 @@ void place_block_mines(int safe_id) {
         if (!safe) pool[pool_size++] = i;
     }
     
-    for (int i = pool_size - 1; i > 0; i--) {
-        int j = rand() % (i + 1);
-        int temp = pool[i];
-        pool[i] = pool[j];
-        pool[j] = temp;
-    }
-    
-    for(int i=0; i<M && i<pool_size; i++) {
-        blocks[pool[i]].is_mine = true;
-    }
-    free(pool);
-    
-    for(int i=0; i<total_blocks; i++) {
-        if (blocks[i].is_mine) continue;
-        int count = 0;
-        for(int j=0; j<blocks[i].num_neighbors; j++) {
-            if (blocks[blocks[i].neighbors[j]].is_mine) count++;
+    int max_attempts = 1000;
+    for(int attempt = 0; attempt < max_attempts; attempt++) {
+        for(int i=0; i<total_blocks; i++) {
+            blocks[i].is_mine = false;
+            blocks[i].adjacent_mines = 0;
         }
-        blocks[i].adjacent_mines = count;
+        
+        for (int i = pool_size - 1; i > 0; i--) {
+            int j = rand() % (i + 1);
+            int temp = pool[i];
+            pool[i] = pool[j];
+            pool[j] = temp;
+        }
+        
+        for(int i=0; i<M && i<pool_size; i++) {
+            blocks[pool[i]].is_mine = true;
+        }
+        
+        for(int i=0; i<total_blocks; i++) {
+            if (blocks[i].is_mine) continue;
+            int count = 0;
+            for(int j=0; j<blocks[i].num_neighbors; j++) {
+                if (blocks[blocks[i].neighbors[j]].is_mine) count++;
+            }
+            blocks[i].adjacent_mines = count;
+        }
+        
+        if (verify_block_board_solvable(safe_id)) {
+            break; // 100% no-guess board found!
+        }
     }
+    
+    free(pool);
 }
 
 void reveal_block_cascade(int id) {
@@ -1269,9 +1657,9 @@ int main() {
         
         char hud[256];
         if (current_mode == MODE_BLOCK) {
-            sprintf(hud, "\x1b[H\x1b[1;37mCube Sweeper [BLOCK MODE - 3D EXCAVATION] | H:%d W:%d D:%d | Mines:%d | Drag:Orbit | WASD:Rotate | Scroll:Zoom | DblClick:Dig | R-Click:Flag | M:Mode | R:Restart\x1b[0m", H, W, D, M);
+            sprintf(hud, "\x1b[H\x1b[1;37mCube Sweeper [BLOCK MODE - NO-GUESS] | H:%d W:%d D:%d | Mines:%d | Drag:Orbit | WASD:Rotate | Scroll:Zoom | DblClick:Dig | R-Click:Flag | M:Mode | R:Restart\x1b[0m", H, W, D, M);
         } else {
-            sprintf(hud, "\x1b[H\x1b[1;37mCube Sweeper [SURFACE MODE - TILES] | H:%d W:%d D:%d | Mines:%d | Drag:Orbit | WASD:Rotate | Scroll:Zoom | DblClick:Reveal | R-Click:Flag | M:Mode | R:Restart\x1b[0m", H, W, D, M);
+            sprintf(hud, "\x1b[H\x1b[1;37mCube Sweeper [SURFACE MODE - NO-GUESS] | H:%d W:%d D:%d | Mines:%d | Drag:Orbit | WASD:Rotate | Scroll:Zoom | DblClick:Reveal | R-Click:Flag | M:Mode | R:Restart\x1b[0m", H, W, D, M);
         }
         
         printf("\x1b[H"); 
