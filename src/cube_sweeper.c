@@ -27,29 +27,34 @@ long long get_time_ms() {
 }
 #endif
 
+int raw_term_w = 120, raw_term_h = 30;
+int margin_x = 0;
+
 void getTerminalSize(int *w, int *h) {
 #ifdef _WIN32
   CONSOLE_SCREEN_BUFFER_INFO csbi;
   HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
   if (GetConsoleScreenBufferInfo(hOut, &csbi)) {
-    *w = csbi.srWindow.Right - csbi.srWindow.Left + 1;
-    *h = csbi.srWindow.Bottom - csbi.srWindow.Top;
+    raw_term_w = csbi.srWindow.Right - csbi.srWindow.Left + 1;
+    raw_term_h = csbi.srWindow.Bottom - csbi.srWindow.Top;
   } else {
-    *w = 120; *h = 30;
+    raw_term_w = 120; raw_term_h = 30;
   }
 #else
   struct winsize ws;
   if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == 0 && ws.ws_col > 0 && ws.ws_row > 0) {
-    *w = ws.ws_col;
-    *h = ws.ws_row - 1;
+    raw_term_w = ws.ws_col;
+    raw_term_h = ws.ws_row - 1;
   } else {
-    *w = 120; *h = 30;
+    raw_term_w = 120; raw_term_h = 30;
   }
 #endif
-  if (*w < 40) *w = 40;
-  if (*h < 15) *h = 15;
-  *w = (int)(*w * 0.95f);
-  *h = (int)(*h * 0.95f);
+  if (raw_term_w < 40) raw_term_w = 40;
+  if (raw_term_h < 15) raw_term_h = 15;
+  *w = (int)(raw_term_w * 0.95f);
+  *h = (int)(raw_term_h * 0.95f);
+  margin_x = (raw_term_w - *w) / 2;
+  if (margin_x < 0) margin_x = 0;
 }
 
 // --------------------------------------------------------
@@ -143,11 +148,17 @@ int last_mid_x = -1, last_mid_y = -1;
 // --------------------------------------------------------
 
 void apply_camera(vec3 p, vec3 *out) {
-    float y1 = p.y*cosf(camA) - p.z*sinf(camA);
-    float z1 = p.y*sinf(camA) + p.z*cosf(camA);
-    float x2 = p.x*cosf(camB) + z1*sinf(camB);
-    float z2 = -p.x*sinf(camB) + z1*cosf(camB);
-    out->x = x2; out->y = y1; out->z = z2;
+    // Step 1: World Yaw around invariant Y-axis (turntable orbit - zero roll)
+    float x1 = p.x * cosf(camB) + p.z * sinf(camB);
+    float z1 = -p.x * sinf(camB) + p.z * cosf(camB);
+    float y1 = p.y;
+    
+    // Step 2: Camera Pitch around local X-axis
+    float y2 = y1 * cosf(camA) - z1 * sinf(camA);
+    float z2 = y1 * sinf(camA) + z1 * cosf(camA);
+    float x2 = x1;
+    
+    out->x = x2; out->y = y2; out->z = z2;
 }
 
 float edgeFunction(float ax, float ay, float bx, float by, float px, float py) {
@@ -949,7 +960,7 @@ int main() {
             color_buffer = (int*)realloc(color_buffer, sizeof(int) * width * height);
             id_buffer = (int*)realloc(id_buffer, sizeof(int) * width * height);
             face_buffer = (int*)realloc(face_buffer, sizeof(int) * width * height);
-            renderBuffer = (char*)realloc(renderBuffer, width * height * 24 + height + 1024);
+            renderBuffer = (char*)realloc(renderBuffer, (width + margin_x + 16) * height * 24 + height + 2048);
             K1 = height * 0.9f;
         }
         
@@ -974,10 +985,10 @@ int main() {
                 if (ir[i].EventType == KEY_EVENT && ir[i].Event.KeyEvent.bKeyDown) {
                     char c = ir[i].Event.KeyEvent.uChar.AsciiChar;
                     if (c == 'q' || c == 'Q' || ir[i].Event.KeyEvent.wVirtualKeyCode == VK_ESCAPE) running = false;
-                    if (c == 'w' || c == 'W') camA -= 0.15f;
-                    if (c == 's' || c == 'S') camA += 0.15f;
-                    if (c == 'a' || c == 'A') camB -= 0.15f;
-                    if (c == 'd' || c == 'D') camB += 0.15f;
+                    if (c == 'w' || c == 'W') { camA -= 0.075f; if (camA < -1.5533f) camA = -1.5533f; }
+                    if (c == 's' || c == 'S') { camA += 0.075f; if (camA > 1.5533f) camA = 1.5533f; }
+                    if (c == 'a' || c == 'A') camB -= 0.075f;
+                    if (c == 'd' || c == 'D') camB += 0.075f;
                     if (c == 'm' || c == 'M') {
                         current_mode = (current_mode == MODE_SURFACE) ? MODE_BLOCK : MODE_SURFACE;
                         init_game();
@@ -988,7 +999,7 @@ int main() {
                 }
                 if (ir[i].EventType == MOUSE_EVENT) {
                     MOUSE_EVENT_RECORD mer = ir[i].Event.MouseEvent;
-                    int cur_x = mer.dwMousePosition.X;
+                    int cur_x = mer.dwMousePosition.X - margin_x;
                     int cur_y = mer.dwMousePosition.Y;
                     mouse_x = cur_x;
                     mouse_y = cur_y;
@@ -1003,7 +1014,7 @@ int main() {
                     bool right_down = (mer.dwButtonState & RIGHTMOST_BUTTON_PRESSED) != 0;
                     bool mid_down = (mer.dwButtonState & FROM_LEFT_2ND_BUTTON_PRESSED) != 0;
                     
-                    // Left-click drag to orbit
+                    // Left-click drag to orbit (2x slower, pitch clamped to [-89 deg, +89 deg])
                     if (left_down) {
                         if (!left_down_prev) {
                             drag_start_x = cur_x;
@@ -1018,8 +1029,10 @@ int main() {
                                 is_mouse_dragging = true;
                             }
                             if (is_mouse_dragging && (dx != 0 || dy != 0)) {
-                                camB += (float)dx * 0.035f;
-                                camA += (float)dy * 0.065f;
+                                camB += (float)dx * 0.0175f;
+                                camA += (float)dy * 0.0325f;
+                                if (camA > 1.5533f) camA = 1.5533f;
+                                if (camA < -1.5533f) camA = -1.5533f;
                                 last_drag_x = cur_x;
                                 last_drag_y = cur_y;
                             }
@@ -1040,7 +1053,7 @@ int main() {
                         }
                     }
                     
-                    // Middle-click drag to orbit (alternative orbit control)
+                    // Middle-click drag to orbit (2x slower, pitch clamped)
                     if (mid_down) {
                         if (!mid_down_prev) {
                             last_mid_x = cur_x;
@@ -1049,8 +1062,10 @@ int main() {
                             int dx = cur_x - last_mid_x;
                             int dy = cur_y - last_mid_y;
                             if (dx != 0 || dy != 0) {
-                                camB += (float)dx * 0.035f;
-                                camA += (float)dy * 0.065f;
+                                camB += (float)dx * 0.0175f;
+                                camA += (float)dy * 0.0325f;
+                                if (camA > 1.5533f) camA = 1.5533f;
+                                if (camA < -1.5533f) camA = -1.5533f;
                                 last_mid_x = cur_x;
                                 last_mid_y = cur_y;
                             }
@@ -1071,10 +1086,10 @@ int main() {
         int ch;
         while ((ch = getchar()) != EOF) {
             if (ch == 'q' || ch == 'Q') running = false;
-            if (ch == 'w' || ch == 'W') camA -= 0.15f;
-            if (ch == 's' || ch == 'S') camA += 0.15f;
-            if (ch == 'a' || ch == 'A') camB -= 0.15f;
-            if (ch == 'd' || ch == 'D') camB += 0.15f;
+            if (ch == 'w' || ch == 'W') { camA -= 0.075f; if (camA < -1.5533f) camA = -1.5533f; }
+            if (ch == 's' || ch == 'S') { camA += 0.075f; if (camA > 1.5533f) camA = 1.5533f; }
+            if (ch == 'a' || ch == 'A') camB -= 0.075f;
+            if (ch == 'd' || ch == 'D') camB += 0.075f;
             if (ch == 'm' || ch == 'M') {
                 current_mode = (current_mode == MODE_SURFACE) ? MODE_BLOCK : MODE_SURFACE;
                 init_game();
@@ -1088,7 +1103,7 @@ int main() {
                         int b = 0, mx = 0, my = 0;
                         char m_state;
                         scanf("%d;%d;%d%c", &b, &mx, &my, &m_state);
-                        int cur_x = mx - 1;
+                        int cur_x = mx - 1 - margin_x;
                         int cur_y = my - 1;
                         mouse_x = cur_x;
                         mouse_y = cur_y;
@@ -1111,8 +1126,10 @@ int main() {
                                     is_mouse_dragging = true;
                                 }
                                 if (is_mouse_dragging && (dx != 0 || dy != 0)) {
-                                    camB += (float)dx * 0.035f;
-                                    camA += (float)dy * 0.065f;
+                                    camB += (float)dx * 0.0175f;
+                                    camA += (float)dy * 0.0325f;
+                                    if (camA > 1.5533f) camA = 1.5533f;
+                                    if (camA < -1.5533f) camA = -1.5533f;
                                     last_drag_x = cur_x;
                                     last_drag_y = cur_y;
                                 }
@@ -1217,6 +1234,9 @@ int main() {
         int current_color = 0;
         
         for (int y = 0; y < height; y++) {
+            for (int mx = 0; mx < margin_x; mx++) {
+                renderBuffer[ptr++] = ' ';
+            }
             for (int x = 0; x < width; x++) {
                 int idx = y * width + x;
                 char c = char_buffer[idx];
