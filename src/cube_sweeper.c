@@ -132,6 +132,11 @@ int mouse_x = -1, mouse_y = -1;
 long long last_left_click_time = 0;
 bool left_down_prev = false;
 bool right_down_prev = false;
+bool mid_down_prev = false;
+bool is_mouse_dragging = false;
+int drag_start_x = -1, drag_start_y = -1;
+int last_drag_x = -1, last_drag_y = -1;
+int last_mid_x = -1, last_mid_y = -1;
 
 // --------------------------------------------------------
 // Rendering Math
@@ -910,7 +915,11 @@ int main() {
     SetConsoleMode(hOut, dwMode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
     
     HANDLE hIn = GetStdHandle(STD_INPUT_HANDLE);
-    SetConsoleMode(hIn, ENABLE_EXTENDED_FLAGS | ENABLE_WINDOW_INPUT | ENABLE_MOUSE_INPUT);
+    DWORD origInMode = 0;
+    GetConsoleMode(hIn, &origInMode);
+    DWORD newInMode = origInMode | ENABLE_EXTENDED_FLAGS | ENABLE_WINDOW_INPUT | ENABLE_MOUSE_INPUT;
+    newInMode &= ~ENABLE_QUICK_EDIT_MODE;
+    SetConsoleMode(hIn, newInMode);
 #else
     struct termios oldt, newt;
     tcgetattr(STDIN_FILENO, &oldt);
@@ -979,8 +988,10 @@ int main() {
                 }
                 if (ir[i].EventType == MOUSE_EVENT) {
                     MOUSE_EVENT_RECORD mer = ir[i].Event.MouseEvent;
-                    mouse_x = mer.dwMousePosition.X;
-                    mouse_y = mer.dwMousePosition.Y;
+                    int cur_x = mer.dwMousePosition.X;
+                    int cur_y = mer.dwMousePosition.Y;
+                    mouse_x = cur_x;
+                    mouse_y = cur_y;
                     
                     if (mer.dwEventFlags & MOUSE_WHEELED) {
                         short wheel_delta = (short)HIWORD(mer.dwButtonState);
@@ -988,24 +999,71 @@ int main() {
                         else if (wheel_delta < 0) zoom_camera(1.5f);
                     }
                     
-                    bool left_down = (mer.dwButtonState & FROM_LEFT_1ST_BUTTON_PRESSED);
-                    bool right_down = (mer.dwButtonState & RIGHTMOST_BUTTON_PRESSED);
+                    bool left_down = (mer.dwButtonState & FROM_LEFT_1ST_BUTTON_PRESSED) != 0;
+                    bool right_down = (mer.dwButtonState & RIGHTMOST_BUTTON_PRESSED) != 0;
+                    bool mid_down = (mer.dwButtonState & FROM_LEFT_2ND_BUTTON_PRESSED) != 0;
                     
-                    if (left_down && !left_down_prev) {
-                        long long now = GetTickCount64();
-                        if (now - last_left_click_time < 500) {
-                            do_reveal = true;
-                            last_left_click_time = 0;
+                    // Left-click drag to orbit
+                    if (left_down) {
+                        if (!left_down_prev) {
+                            drag_start_x = cur_x;
+                            drag_start_y = cur_y;
+                            last_drag_x = cur_x;
+                            last_drag_y = cur_y;
+                            is_mouse_dragging = false;
                         } else {
-                            last_left_click_time = now;
+                            int dx = cur_x - last_drag_x;
+                            int dy = cur_y - last_drag_y;
+                            if (abs(cur_x - drag_start_x) > 1 || abs(cur_y - drag_start_y) > 1) {
+                                is_mouse_dragging = true;
+                            }
+                            if (is_mouse_dragging && (dx != 0 || dy != 0)) {
+                                camB += (float)dx * 0.035f;
+                                camA += (float)dy * 0.065f;
+                                last_drag_x = cur_x;
+                                last_drag_y = cur_y;
+                            }
+                        }
+                    } else if (left_down_prev) {
+                        // Left button released
+                        if (!is_mouse_dragging) {
+                            long long now = GetTickCount64();
+                            if (now - last_left_click_time < 500) {
+                                do_reveal = true;
+                                last_left_click_time = 0;
+                            } else {
+                                last_left_click_time = now;
+                            }
+                        } else {
+                            last_left_click_time = 0;
+                            is_mouse_dragging = false;
                         }
                     }
+                    
+                    // Middle-click drag to orbit (alternative orbit control)
+                    if (mid_down) {
+                        if (!mid_down_prev) {
+                            last_mid_x = cur_x;
+                            last_mid_y = cur_y;
+                        } else {
+                            int dx = cur_x - last_mid_x;
+                            int dy = cur_y - last_mid_y;
+                            if (dx != 0 || dy != 0) {
+                                camB += (float)dx * 0.035f;
+                                camA += (float)dy * 0.065f;
+                                last_mid_x = cur_x;
+                                last_mid_y = cur_y;
+                            }
+                        }
+                    }
+                    
                     if (right_down && !right_down_prev) {
                         do_flag = true;
                     }
                     
                     left_down_prev = left_down;
                     right_down_prev = right_down;
+                    mid_down_prev = mid_down;
                 }
             }
         }
@@ -1030,21 +1088,52 @@ int main() {
                         int b = 0, mx = 0, my = 0;
                         char m_state;
                         scanf("%d;%d;%d%c", &b, &mx, &my, &m_state);
-                        mouse_x = mx - 1; mouse_y = my - 1;
+                        int cur_x = mx - 1;
+                        int cur_y = my - 1;
+                        mouse_x = cur_x;
+                        mouse_y = cur_y;
                         if (b == 64) {
                             zoom_camera(-1.5f);
                         } else if (b == 65) {
                             zoom_camera(1.5f);
-                        } else if (m_state == 'M') { // Press
-                            if (b == 0) {
-                                long long now = get_time_ms();
-                                if (now - last_left_click_time < 500) {
-                                    do_reveal = true; last_left_click_time = 0;
-                                } else {
-                                    last_left_click_time = now;
+                        } else if (m_state == 'M') { // Press or Move
+                            if (b == 0) { // Left press
+                                drag_start_x = cur_x;
+                                drag_start_y = cur_y;
+                                last_drag_x = cur_x;
+                                last_drag_y = cur_y;
+                                is_mouse_dragging = false;
+                                left_down_prev = true;
+                            } else if (b == 32) { // Left drag (motion with button 0 down)
+                                int dx = cur_x - last_drag_x;
+                                int dy = cur_y - last_drag_y;
+                                if (abs(cur_x - drag_start_x) > 1 || abs(cur_y - drag_start_y) > 1) {
+                                    is_mouse_dragging = true;
                                 }
-                            } else if (b == 2) {
+                                if (is_mouse_dragging && (dx != 0 || dy != 0)) {
+                                    camB += (float)dx * 0.035f;
+                                    camA += (float)dy * 0.065f;
+                                    last_drag_x = cur_x;
+                                    last_drag_y = cur_y;
+                                }
+                            } else if (b == 2) { // Right click
                                 do_flag = true;
+                            }
+                        } else if (m_state == 'm') { // Release
+                            if (b == 0) {
+                                if (!is_mouse_dragging) {
+                                    long long now = get_time_ms();
+                                    if (now - last_left_click_time < 500) {
+                                        do_reveal = true;
+                                        last_left_click_time = 0;
+                                    } else {
+                                        last_left_click_time = now;
+                                    }
+                                } else {
+                                    last_left_click_time = 0;
+                                    is_mouse_dragging = false;
+                                }
+                                left_down_prev = false;
                             }
                         }
                     }
@@ -1080,7 +1169,7 @@ int main() {
         
         if (hovered_id != -1 && !game_over && !game_won) {
             if (current_mode == MODE_SURFACE) {
-                if (!tiles[hovered_id].is_revealed) {
+                if (!tiles[hovered_id].is_revealed && !is_mouse_dragging) {
                     for(int j=0; j<width*height; j++) {
                         if (id_buffer[j] == hovered_id) color_buffer[j] = 100;
                     }
@@ -1097,7 +1186,7 @@ int main() {
                     tiles[hovered_id].is_flagged = !tiles[hovered_id].is_flagged;
                 }
             } else {
-                if (!blocks[hovered_id].is_revealed) {
+                if (!blocks[hovered_id].is_revealed && !is_mouse_dragging) {
                     for(int j=0; j<width*height; j++) {
                         if (id_buffer[j] == hovered_id) color_buffer[j] = 100;
                     }
@@ -1119,9 +1208,9 @@ int main() {
         apply_tile_inner_padding();
         
         if (current_mode == MODE_SURFACE) {
-            render_surface_overlays(hovered_id);
+            render_surface_overlays(is_mouse_dragging ? -1 : hovered_id);
         } else {
-            render_block_overlays(hovered_id);
+            render_block_overlays(is_mouse_dragging ? -1 : hovered_id);
         }
         
         int ptr = 0;
@@ -1156,9 +1245,9 @@ int main() {
         
         char hud[256];
         if (current_mode == MODE_BLOCK) {
-            sprintf(hud, "\x1b[H\x1b[1;37mCube Sweeper [BLOCK MODE - 3D EXCAVATION] | H:%d W:%d D:%d | Mines:%d | WASD:Rotate | Scroll:Zoom | DblClick:Dig | R-Click:Flag | M:Switch Mode | R:Restart\x1b[0m", H, W, D, M);
+            sprintf(hud, "\x1b[H\x1b[1;37mCube Sweeper [BLOCK MODE - 3D EXCAVATION] | H:%d W:%d D:%d | Mines:%d | Drag:Orbit | WASD:Rotate | Scroll:Zoom | DblClick:Dig | R-Click:Flag | M:Mode | R:Restart\x1b[0m", H, W, D, M);
         } else {
-            sprintf(hud, "\x1b[H\x1b[1;37mCube Sweeper [SURFACE MODE - TILES] | H:%d W:%d D:%d | Mines:%d | WASD:Rotate | Scroll:Zoom | DblClick:Reveal | R-Click:Flag | M:Switch Mode | R:Restart\x1b[0m", H, W, D, M);
+            sprintf(hud, "\x1b[H\x1b[1;37mCube Sweeper [SURFACE MODE - TILES] | H:%d W:%d D:%d | Mines:%d | Drag:Orbit | WASD:Rotate | Scroll:Zoom | DblClick:Reveal | R-Click:Flag | M:Mode | R:Restart\x1b[0m", H, W, D, M);
         }
         
         printf("\x1b[H"); 
@@ -1184,7 +1273,9 @@ int main() {
     if (blocks) { free(blocks); blocks = NULL; }
     if (face_buffer) { free(face_buffer); face_buffer = NULL; }
     
-#ifndef _WIN32
+#ifdef _WIN32
+    SetConsoleMode(hIn, origInMode);
+#else
     printf("\033[?1003l\033[?1015l\033[?1006l");
     tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
     fcntl(STDIN_FILENO, F_SETFL, oldf);
