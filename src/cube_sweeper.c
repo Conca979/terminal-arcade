@@ -789,7 +789,7 @@ void render_block_geometry() {
         if (b->is_revealed && b->adjacent_mines == 0 && !b->is_mine) continue; // Excavated air!
         
         // Contracted to 0.3 total size (s = 0.15f) for revealed numbered blocks, full size (s = 0.5f) for unrevealed
-        float s = (b->is_revealed && !b->is_mine) ? 0.15f : 0.5f;
+        float s = (b->is_revealed && !b->is_mine) ? 0.25f : 0.5f;
         vec3 c = b->center;
         for(int f=0; f<6; f++) {
             if (!is_block_face_exposed(b, f)) continue;
@@ -829,7 +829,7 @@ void render_block_overlays(int hovered_id) {
             if (!(b->is_revealed && b->is_mine)) continue;
         }
         
-        float s = (b->is_revealed && !b->is_mine) ? 0.15f : 0.5f;
+        float s = (b->is_revealed && !b->is_mine) ? 0.25f : 0.5f;
         vec3 c = b->center;
         for(int f=0; f<6; f++) {
             if (!is_block_face_exposed(b, f)) continue;
