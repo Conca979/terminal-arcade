@@ -987,8 +987,8 @@ int main() {
                     if (c == 'q' || c == 'Q' || ir[i].Event.KeyEvent.wVirtualKeyCode == VK_ESCAPE) running = false;
                     if (c == 'w' || c == 'W') { camA -= 0.075f; if (camA < -1.5533f) camA = -1.5533f; }
                     if (c == 's' || c == 'S') { camA += 0.075f; if (camA > 1.5533f) camA = 1.5533f; }
-                    if (c == 'a' || c == 'A') camB -= 0.075f;
-                    if (c == 'd' || c == 'D') camB += 0.075f;
+                    if (c == 'a' || c == 'A') camB += 0.075f;
+                    if (c == 'd' || c == 'D') camB -= 0.075f;
                     if (c == 'm' || c == 'M') {
                         current_mode = (current_mode == MODE_SURFACE) ? MODE_BLOCK : MODE_SURFACE;
                         init_game();
@@ -1014,7 +1014,7 @@ int main() {
                     bool right_down = (mer.dwButtonState & RIGHTMOST_BUTTON_PRESSED) != 0;
                     bool mid_down = (mer.dwButtonState & FROM_LEFT_2ND_BUTTON_PRESSED) != 0;
                     
-                    // Left-click drag to orbit (2x slower, pitch clamped to [-89 deg, +89 deg])
+                    // Left-click drag to orbit (inverted horizontal yaw)
                     if (left_down) {
                         if (!left_down_prev) {
                             drag_start_x = cur_x;
@@ -1029,7 +1029,7 @@ int main() {
                                 is_mouse_dragging = true;
                             }
                             if (is_mouse_dragging && (dx != 0 || dy != 0)) {
-                                camB += (float)dx * 0.0175f;
+                                camB -= (float)dx * 0.0175f;
                                 camA += (float)dy * 0.0325f;
                                 if (camA > 1.5533f) camA = 1.5533f;
                                 if (camA < -1.5533f) camA = -1.5533f;
@@ -1053,7 +1053,7 @@ int main() {
                         }
                     }
                     
-                    // Middle-click drag to orbit (2x slower, pitch clamped)
+                    // Middle-click drag to orbit (inverted horizontal yaw)
                     if (mid_down) {
                         if (!mid_down_prev) {
                             last_mid_x = cur_x;
@@ -1062,7 +1062,7 @@ int main() {
                             int dx = cur_x - last_mid_x;
                             int dy = cur_y - last_mid_y;
                             if (dx != 0 || dy != 0) {
-                                camB += (float)dx * 0.0175f;
+                                camB -= (float)dx * 0.0175f;
                                 camA += (float)dy * 0.0325f;
                                 if (camA > 1.5533f) camA = 1.5533f;
                                 if (camA < -1.5533f) camA = -1.5533f;
@@ -1088,8 +1088,8 @@ int main() {
             if (ch == 'q' || ch == 'Q') running = false;
             if (ch == 'w' || ch == 'W') { camA -= 0.075f; if (camA < -1.5533f) camA = -1.5533f; }
             if (ch == 's' || ch == 'S') { camA += 0.075f; if (camA > 1.5533f) camA = 1.5533f; }
-            if (ch == 'a' || ch == 'A') camB -= 0.075f;
-            if (ch == 'd' || ch == 'D') camB += 0.075f;
+            if (ch == 'a' || ch == 'A') camB += 0.075f;
+            if (ch == 'd' || ch == 'D') camB -= 0.075f;
             if (ch == 'm' || ch == 'M') {
                 current_mode = (current_mode == MODE_SURFACE) ? MODE_BLOCK : MODE_SURFACE;
                 init_game();
@@ -1126,7 +1126,7 @@ int main() {
                                     is_mouse_dragging = true;
                                 }
                                 if (is_mouse_dragging && (dx != 0 || dy != 0)) {
-                                    camB += (float)dx * 0.0175f;
+                                    camB -= (float)dx * 0.0175f;
                                     camA += (float)dy * 0.0325f;
                                     if (camA > 1.5533f) camA = 1.5533f;
                                     if (camA < -1.5533f) camA = -1.5533f;
