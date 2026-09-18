@@ -23,3 +23,6 @@ draft.txt
 
 # Testing
 test_env/
+
+# Config (in contruction)
+CUBE_SWEEPER_CONFIG.md
