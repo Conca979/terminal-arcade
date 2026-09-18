@@ -759,6 +759,8 @@ void get_block_face_vertices(vec3 c, float s, int f, vec3 v[4]) {
 }
 
 bool is_block_face_exposed(Block *b, int f) {
+    if (b->is_revealed) return true; // Contracted central node has all faces exposed to open air
+    
     const int f_dirs[6][3] = {
         {0, 0, 1},   // 0: Front (+Z)
         {0, 0, -1},  // 1: Back (-Z)
@@ -774,18 +776,20 @@ bool is_block_face_exposed(Block *b, int f) {
         return true; // outside air
     }
     int nid = (ny * W + nx) * D + nz;
-    if (blocks[nid].is_revealed && blocks[nid].adjacent_mines == 0 && !blocks[nid].is_mine) {
-        return true; // excavated air cavern
+    // Neighbor is revealed: excavated air cavern or contracted node leaves this face exposed
+    if (blocks[nid].is_revealed && !blocks[nid].is_mine) {
+        return true;
     }
     return false;
 }
 
 void render_block_geometry() {
-    float s = 0.5f;
     for(int i=0; i<total_blocks; i++) {
         Block* b = &blocks[i];
-        if (b->is_revealed && b->adjacent_mines == 0 && !b->is_mine) continue; // Excavated!
+        if (b->is_revealed && b->adjacent_mines == 0 && !b->is_mine) continue; // Excavated air!
         
+        // Contracted to 0.3 total size (s = 0.15f) for revealed numbered blocks, full size (s = 0.5f) for unrevealed
+        float s = (b->is_revealed && !b->is_mine) ? 0.15f : 0.5f;
         vec3 c = b->center;
         for(int f=0; f<6; f++) {
             if (!is_block_face_exposed(b, f)) continue;
@@ -797,7 +801,7 @@ void render_block_geometry() {
             int color = 0;
             if (b->is_revealed) {
                 if (b->is_mine) { ch = '*'; color = 91; }
-                else { ch = '#'; color = 90; } // Revealed numbered block is solid dark gray stone wall
+                else { ch = '#'; color = 90; } // Contracted clue node: dark gray pedestal
             } else {
                 ch = '#'; color = 0;
             }
@@ -810,7 +814,6 @@ void render_block_geometry() {
 }
 
 void render_block_overlays(int hovered_id) {
-    float s = 0.5f;
     const vec3 face_normals[6] = {
         {0, 0, 1},   // 0: Front (+Z)
         {0, 0, -1},  // 1: Back (-Z)
@@ -826,6 +829,7 @@ void render_block_overlays(int hovered_id) {
             if (!(b->is_revealed && b->is_mine)) continue;
         }
         
+        float s = (b->is_revealed && !b->is_mine) ? 0.15f : 0.5f;
         vec3 c = b->center;
         for(int f=0; f<6; f++) {
             if (!is_block_face_exposed(b, f)) continue;
@@ -861,10 +865,10 @@ void render_block_overlays(int hovered_id) {
             int face_id = b->id * 6 + f;
             int test_fid = face_buffer[cy * width + cx];
             if (test_fid != face_id) {
-                if (cy > 0 && face_buffer[(cy-1)*width + cx] == face_id) test_fid = face_id;
-                else if (cy+1 < height && face_buffer[(cy+1)*width + cx] == face_id) test_fid = face_id;
-                else if (cx > 0 && face_buffer[cy*width + cx - 1] == face_id) test_fid = face_id;
-                else if (cx+1 < width && face_buffer[cy*width + cx + 1] == face_id) test_fid = face_id;
+                if (cy > 0 && face_buffer[(cy-1)*width + cx] == face_id) { test_fid = face_id; cy--; }
+                else if (cy+1 < height && face_buffer[(cy+1)*width + cx] == face_id) { test_fid = face_id; cy++; }
+                else if (cx > 0 && face_buffer[cy*width + cx - 1] == face_id) { test_fid = face_id; cx--; }
+                else if (cx+1 < width && face_buffer[cy*width + cx + 1] == face_id) { test_fid = face_id; cx++; }
             }
             if (test_fid != face_id) continue;
             
@@ -1029,8 +1033,8 @@ int main() {
                                 is_mouse_dragging = true;
                             }
                             if (is_mouse_dragging && (dx != 0 || dy != 0)) {
-                                camB -= (float)dx * 0.0175f;
-                                camA += (float)dy * 0.0325f;
+                                camB -= (float)dx * 0.0075f;
+                                camA += (float)dy * 0.0125f;
                                 if (camA > 1.5533f) camA = 1.5533f;
                                 if (camA < -1.5533f) camA = -1.5533f;
                                 last_drag_x = cur_x;
