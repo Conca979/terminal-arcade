@@ -53,6 +53,16 @@ Relativistic raymarching engine simulating a black hole and accretion disk using
 
 ---
 
+### 💣 3D Cube Sweeper (100% No-Guess Minesweeper) (`src/cube_sweeper.c`)
+Fully interactive 3D Minesweeper featuring Surface Mode and true 3D Volumetric Excavation Mode. Powered by an embedded 2-tier deductive constraint solver guaranteeing 100% deterministic, no-guess boards, mouse-drag turntable camera orbiting, and Voxel Contraction to view and click into the internal core.
+
+---
+
+### 🦆 3D Raymarched Duck Hunt (`src/duck_hunt.c`)
+Real-time first-person arcade hunting game rendered with Signed Distance Fields (SDF) and volumetric raymarching. Features procedural undulating grass terrain, smooth-blended (`smin`) flapping ducks, mouse crosshair aiming, shotgun raycasts, ammo tracking, and reloading.
+
+---
+
 ## Features
 
 - **Solar System & Planetary Orbits** (`src/solar_spinning.c`): Multi-body celestial system with central radial point lighting (day/night hemisphere shading), hierarchical moon orbits, Saturn's ring disc, time speed scaling, and planet camera focus switching.
@@ -61,6 +71,8 @@ Relativistic raymarching engine simulating a black hole and accretion disk using
 - **3D Torus (Donut)** (`src/donut_spinning.c`): Real-time surface normal lighting mapped to an ASCII luminance ramp (`.,-~:;=!*#$@`).
 - **Triple Rotating Cubes** (`src/cube_spinning.c`): Three simultaneous cubes of varying sizes with independent spatial offsets.
 - **Interactive 3D Rubik's Cube** (`src/rubiks_cube.c`): Fully functional puzzle rendered using true 2D scanline rasterization with ANSI colors and interactive animations.
+- **3D Cube Sweeper** (`src/cube_sweeper.c`): Dual-mode 3D puzzle engine supporting both Surface Mode (continuous wrapping across 90-degree outer edges) and 3D Block Mode (volumetric excavation). Features an offline 2-tier deductive constraint solver eliminating 50/50 guesses, mouse-drag turntable camera with pitch clamping, and Voxel Contraction (shrunk clue blocks opening clear sightlines into the 3D volume).
+- **3D Duck Hunt** (`src/duck_hunt.c`): Real-time raymarched arcade shooter utilizing Signed Distance Field (SDF) primitives, smooth minimum blending (`smin`), procedural terrain, mouse aiming, shotgun raycasting, and scaled block-font HUD overlays.
 - **Schwarzschild Black Hole** (`src/black_hole.c`): Real-time volumetric raymarching using OpenMP, rendering curved spacetime, gravitational lensing, and relativistic Doppler beaming with TrueColor ANSI escape sequences.
 - **Depth Buffering**: Custom z-buffer to prevent surface overlap and clipping artifacts.
 - **Pure C**: Zero external graphic libraries or dependencies, relying only on standard C runtime (`math.h`, `stdio.h`, `string.h`, `unistd.h`).
@@ -93,6 +105,8 @@ make cube_spinning
 make donut_spinning
 make rubiks_cube
 make black_hole
+make cube_sweeper
+make duck_hunt
 ```
 
 Clean all compiled executables:
@@ -288,6 +302,63 @@ make donut_spinning
 
 ---
 
+### 8. 💣 3D Cube Sweeper (100% No-Guess Minesweeper)
+
+```bash
+# Build
+make cube_sweeper
+
+# Or compile manually with gcc:
+# gcc -O3 -Wall -fopenmp src/cube_sweeper.c -o bin/cube_sweeper.exe -lm -fopenmp
+
+# Run (Windows)
+.\bin\cube_sweeper.exe
+
+# Run (Linux / macOS)
+./bin/cube_sweeper
+```
+
+**Interactive Controls:**
+| Input | Action |
+| :--- | :--- |
+| `Left Mouse Drag` | Orbit turntable camera (zero roll, pitch clamped between -89 deg and +89 deg) |
+| `Left Double-Click` | Reveal targeted surface tile (Surface Mode) / Dig targeted voxel (Block Mode) |
+| `Right Click` | Toggle mine flag (`F`) |
+| `Mouse Scroll` | Smooth camera zoom in / out |
+| `W` / `A` / `S` / `D` | Keyboard camera pitch / yaw orbit |
+| `M` | Toggle game mode (`Surface Mode` <-> `Block Excavation Mode`) |
+| `R` | Restart puzzle with new randomized dimensions |
+| `Esc` / `Q` | Exit |
+
+---
+
+### 9. 🦆 3D Raymarched Duck Hunt
+
+```bash
+# Build
+make duck_hunt
+
+# Or compile manually with gcc:
+# gcc -O3 -Wall -fopenmp src/duck_hunt.c -o bin/duck_hunt.exe -lm -fopenmp
+
+# Run (Windows)
+.\bin\duck_hunt.exe
+
+# Run (Linux / macOS)
+./bin/duck_hunt
+```
+
+**Interactive Controls:**
+| Input | Action |
+| :--- | :--- |
+| `Mouse Move` | Aim shotgun crosshair |
+| `Left Click` | Fire shotgun blast (raycast hit detection) |
+| `E` | Reload ammunition (8 shells capacity) |
+| `W` / `A` / `S` / `D` | Navigate through procedural terrain |
+| `Esc` | Pause game / release mouse capture |
+
+---
+
 > **Tip**: For the best visual experience, set your terminal window to at least **160 × 44 characters** (or maximize / fullscreen the window).
 
 ---
@@ -303,6 +374,9 @@ See [FUTURE_TASKS.md](FUTURE_TASKS.md) for detailed mathematical specifications,
 - [ ] Procedural 3D Terrain Flight Simulator (`src/fly_terrain.c`)
 - [x] Black Hole & Gravitational Lensing (`src/black_hole.c`)
 - [x] Interactive 3D Rubik's Cube (`src/rubiks_cube.c`)
+- [x] 3D Cube Sweeper (No-Guess Deductive Engine & Dual Modes) (`src/cube_sweeper.c`)
+- [x] 3D Raymarched Duck Hunt & Procedural Terrain (`src/duck_hunt.c`)
+- [x] Mouse Click-and-Drag Turntable Camera Orbiting
 - [ ] 3D Wave Tank & Ripple Surface (`src/wave_surface.c`)
 - [ ] Jumping & Gravity mechanics in `src/body_moving.c`
 - [ ] ANSI TrueColor (24-bit RGB) shading support
