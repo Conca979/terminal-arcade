@@ -54,12 +54,19 @@ static float *zBuffer = NULL;
 static char *buffer = NULL;
 static char *renderBuffer = NULL;
 
-// Camera State (Zero-roll Turntable Orbit)
-static float camA = 0.25f;  // Pitch
-static float camB = -0.4f;  // Yaw
+static float angleX = 0.3f;
+static float angleY = 0.0f;
+static float angleZ = 0.0f;
 static float camDist = 25.0f;
-static float dnaSpin = 0.0f;
 static float K1 = 40.0f;
+
+static float cosX, sinX, cosY, sinY, cosZ, sinZ;
+
+void zoom_camera(float delta) {
+  camDist += delta;
+  if (camDist < 5.0f) camDist = 5.0f;
+  if (camDist > 80.0f) camDist = 80.0f;
+}
 
 // Mouse input state
 static int mouse_x = -1, mouse_y = -1;
@@ -70,45 +77,29 @@ static int drag_start_x = -1, drag_start_y = -1;
 static int last_drag_x = -1, last_drag_y = -1;
 static int last_mid_x = -1, last_mid_y = -1;
 
-void zoom_camera(float delta) {
-  camDist += delta;
-  if (camDist < 10.0f) camDist = 10.0f;
-  if (camDist > 100.0f) camDist = 100.0f;
-}
-
-void apply_camera(float x, float y, float z, float *ox, float *oy, float *oz) {
-  // Step 1: World Yaw around invariant Y-axis (turntable orbit - zero roll)
-  float x1 = x * cosf(camB) + z * sinf(camB);
-  float z1 = -x * sinf(camB) + z * cosf(camB);
-  float y1 = y;
-
-  // Step 2: Camera Pitch around local X-axis
-  float y2 = y1 * cosf(camA) - z1 * sinf(camA);
-  float z2 = y1 * sinf(camA) + z1 * cosf(camA);
-  float x2 = x1;
-
-  *ox = x2;
-  *oy = y2;
-  *oz = z2;
-}
-
 void drawPoint(float x, float y, float z, char ch) {
-  // Local spin of DNA around Y axis
-  float cosS = cosf(dnaSpin);
-  float sinS = sinf(dnaSpin);
-  float rx = x * cosS + z * sinS;
-  float rz = -x * sinS + z * cosS;
-  float ry = y;
-
-  float cx, cy, cz;
-  apply_camera(rx, ry, rz, &cx, &cy, &cz);
-  cz += camDist;
-  if (cz <= 0.1f) return;
-
-  float ooz = 1.0f / cz;
-  int xp = (int)(width / 2.0f + K1 * ooz * cx * 2.0f);
-  int yp = (int)(height / 2.0f + K1 * ooz * cy);
-
+  // Rotate X
+  float ty = y * cosX - z * sinX;
+  float tz = y * sinX + z * cosX;
+  y = ty; z = tz;
+  
+  // Rotate Y
+  float tx = x * cosY + z * sinY;
+  tz = -x * sinY + z * cosY;
+  x = tx; z = tz;
+  
+  // Rotate Z
+  tx = x * cosZ - y * sinZ;
+  ty = x * sinZ + y * cosZ;
+  x = tx; y = ty;
+  
+  z += camDist;
+  if (z <= 0.1f) return; 
+  
+  float ooz = 1.0f / z;
+  int xp = (int)(width / 2.0f + K1 * ooz * x * 2.0f);
+  int yp = (int)(height / 2.0f + K1 * ooz * y);
+  
   int idx = xp + yp * width;
   if (xp >= 0 && xp < width && yp >= 0 && yp < height) {
     if (ooz > zBuffer[idx]) {
@@ -176,14 +167,17 @@ int main(void) {
         if (ir[i].EventType == KEY_EVENT && ir[i].Event.KeyEvent.bKeyDown) {
           char key = ir[i].Event.KeyEvent.uChar.AsciiChar;
           WORD vk = ir[i].Event.KeyEvent.wVirtualKeyCode;
+
           if (key == 27 || vk == VK_ESCAPE) running = false;
-          if (key == 'w' || key == 'W') { camA -= 0.08f; if (camA < -1.5533f) camA = -1.5533f; }
-          if (key == 's' || key == 'S') { camA += 0.08f; if (camA > 1.5533f) camA = 1.5533f; }
-          if (key == 'a' || key == 'A') camB -= 0.08f;
-          if (key == 'd' || key == 'D') camB += 0.08f;
-          if (key == '=' || key == '+') zoom_camera(-2.0f);
-          if (key == '-' || key == '_') zoom_camera(2.0f);
-          if (key == ' ') paused = !paused;
+          if (key == 'w' || key == 'W' || vk == 'W' || vk == VK_UP) angleX -= 0.15f;
+          if (key == 's' || key == 'S' || vk == 'S' || vk == VK_DOWN) angleX += 0.15f;
+          if (key == 'a' || key == 'A' || vk == 'A' || vk == VK_LEFT) angleY -= 0.15f;
+          if (key == 'd' || key == 'D' || vk == 'D' || vk == VK_RIGHT) angleY += 0.15f;
+          if (key == 'q' || key == 'Q' || vk == 'Q') angleZ -= 0.15f;
+          if (key == 'e' || key == 'E' || vk == 'E') angleZ += 0.15f;
+          if (key == '=' || key == '+' || vk == VK_OEM_PLUS || vk == VK_ADD) zoom_camera(-2.0f);
+          if (key == '-' || key == '_' || vk == VK_OEM_MINUS || vk == VK_SUBTRACT) zoom_camera(2.0f);
+          if (key == ' ' || vk == VK_SPACE) paused = !paused;
         } else if (ir[i].EventType == MOUSE_EVENT) {
           MOUSE_EVENT_RECORD mer = ir[i].Event.MouseEvent;
           int cur_x = mer.dwMousePosition.X - margin_x;
@@ -214,10 +208,8 @@ int main(void) {
                 is_mouse_dragging = true;
               }
               if (is_mouse_dragging && (dx != 0 || dy != 0)) {
-                camB -= (float)dx * 0.0075f;
-                camA += (float)dy * 0.0125f;
-                if (camA > 1.5533f) camA = 1.5533f;
-                if (camA < -1.5533f) camA = -1.5533f;
+                angleY += (float)dx * 0.01f;
+                angleX -= (float)dy * 0.01f;
                 last_drag_x = cur_x;
                 last_drag_y = cur_y;
               }
@@ -234,10 +226,8 @@ int main(void) {
               int dx = cur_x - last_mid_x;
               int dy = cur_y - last_mid_y;
               if (dx != 0 || dy != 0) {
-                camB -= (float)dx * 0.015f;
-                camA += (float)dy * 0.025f;
-                if (camA > 1.5533f) camA = 1.5533f;
-                if (camA < -1.5533f) camA = -1.5533f;
+                angleY += (float)dx * 0.02f;
+                angleX -= (float)dy * 0.02f;
                 last_mid_x = cur_x;
                 last_mid_y = cur_y;
               }
@@ -278,24 +268,26 @@ int main(void) {
                 int dy = cur_y - last_drag_y;
                 if (abs(cur_x - drag_start_x) > 1 || abs(cur_y - drag_start_y) > 1) is_mouse_dragging = true;
                 if (is_mouse_dragging && (dx != 0 || dy != 0)) {
-                  camB -= (float)dx * 0.015f;
-                  camA += (float)dy * 0.025f;
-                  if (camA > 1.5533f) camA = 1.5533f;
-                  if (camA < -1.5533f) camA = -1.5533f;
+                  angleY += (float)dx * 0.01f;
+                  angleX -= (float)dy * 0.01f;
                   last_drag_x = cur_x; last_drag_y = cur_y;
                 }
               }
             } else if (m_state == 'm') {
               if (b == 0) { is_mouse_dragging = false; left_down_prev = false; }
             }
-          }
+          } else if (next2 == 'A') { angleX -= 0.15f; }
+          else if (next2 == 'B') { angleX += 0.15f; }
+          else if (next2 == 'C') { angleY += 0.15f; }
+          else if (next2 == 'D') { angleY -= 0.15f; }
         }
       } else {
-        if (ch == 'q' || ch == 'Q') running = false;
-        if (ch == 'w' || ch == 'W') { camA -= 0.08f; if (camA < -1.5533f) camA = -1.5533f; }
-        if (ch == 's' || ch == 'S') { camA += 0.08f; if (camA > 1.5533f) camA = 1.5533f; }
-        if (ch == 'a' || ch == 'A') camB -= 0.08f;
-        if (ch == 'd' || ch == 'D') camB += 0.08f;
+        if (ch == 'w' || ch == 'W') angleX -= 0.15f;
+        if (ch == 's' || ch == 'S') angleX += 0.15f;
+        if (ch == 'a' || ch == 'A') angleY -= 0.15f;
+        if (ch == 'd' || ch == 'D') angleY += 0.15f;
+        if (ch == 'q' || ch == 'Q') angleZ -= 0.15f;
+        if (ch == 'e' || ch == 'E') angleZ += 0.15f;
         if (ch == '=' || ch == '+') zoom_camera(-2.0f);
         if (ch == '-' || ch == '_') zoom_camera(2.0f);
         if (ch == ' ') paused = !paused;
@@ -304,7 +296,7 @@ int main(void) {
 #endif
 
     if (!paused) {
-      dnaSpin += 0.04f;
+      angleY += 0.05f; // Auto rotate
     }
 
     int new_w, new_h;
@@ -321,6 +313,10 @@ int main(void) {
 
     memset(buffer, ' ', width * height);
     memset(zBuffer, 0, width * height * sizeof(float));
+
+    cosX = cosf(angleX); sinX = sinf(angleX);
+    cosY = cosf(angleY); sinY = sinf(angleY);
+    cosZ = cosf(angleZ); sinZ = sinf(angleZ);
 
     // Draw the two helix strands
     for (float y = -L / 2.0f; y <= L / 2.0f; y += 0.05f) {
@@ -353,7 +349,7 @@ int main(void) {
       renderBuffer[p++] = '\n';
     }
 
-    const char *hud = "  [Drag/WASD] Orbit   [Wheel/+/-] Zoom   [Space] Pause   [Esc] Quit\n";
+    const char *hud = "  [Drag/WASD/Arrows] Orbit   [Q/E] Roll   [Wheel/+/-] Zoom   [Space] Pause   [Esc] Quit\n";
     int hud_len = (int)strlen(hud);
     memcpy(&renderBuffer[p], hud, hud_len);
     p += hud_len;

@@ -47,9 +47,10 @@ void getTerminalSize(int *w, int *h) {
   if (margin_x < 0) margin_x = 0;
 }
 
-// Camera State (Zero-roll Turntable Orbit)
+// Camera State (Turntable Orbit + Roll)
 static float camA = 0.35f;  // Pitch
 static float camB = -0.45f; // Yaw
+static float camC = 0.0f;   // Roll
 static float distanceFromCam = 100.0f;
 static float spinAngle = 0.0f;
 
@@ -69,7 +70,7 @@ void zoom_camera(float delta) {
 }
 
 void apply_camera(float x, float y, float z, float *ox, float *oy, float *oz) {
-  // Step 1: World Yaw around invariant Y-axis (turntable orbit - zero roll)
+  // Step 1: World Yaw around invariant Y-axis
   float x1 = x * cosf(camB) + z * sinf(camB);
   float z1 = -x * sinf(camB) + z * cosf(camB);
   float y1 = y;
@@ -79,9 +80,14 @@ void apply_camera(float x, float y, float z, float *ox, float *oy, float *oz) {
   float z2 = y1 * sinf(camA) + z1 * cosf(camA);
   float x2 = x1;
 
-  *ox = x2;
-  *oy = y2;
-  *oz = z2;
+  // Step 3: Camera Roll around view Z-axis
+  float x3 = x2 * cosf(camC) - y2 * sinf(camC);
+  float y3 = x2 * sinf(camC) + y2 * cosf(camC);
+  float z3 = z2;
+
+  *ox = x3;
+  *oy = y3;
+  *oz = z3;
 }
 
 static float cubeWidth = 20;
@@ -169,14 +175,23 @@ int main(void) {
         if (ir[i].EventType == KEY_EVENT && ir[i].Event.KeyEvent.bKeyDown) {
           char key = ir[i].Event.KeyEvent.uChar.AsciiChar;
           WORD vk = ir[i].Event.KeyEvent.wVirtualKeyCode;
+
           if (key == 27 || vk == VK_ESCAPE) running = false;
-          if (key == 'w' || key == 'W') { camA -= 0.08f; if (camA < -1.5533f) camA = -1.5533f; }
-          if (key == 's' || key == 'S') { camA += 0.08f; if (camA > 1.5533f) camA = 1.5533f; }
-          if (key == 'a' || key == 'A') camB -= 0.08f;
-          if (key == 'd' || key == 'D') camB += 0.08f;
-          if (key == '=' || key == '+') zoom_camera(-5.0f);
-          if (key == '-' || key == '_') zoom_camera(5.0f);
-          if (key == ' ') paused = !paused;
+          if (key == 'w' || key == 'W' || vk == 'W' || vk == VK_UP) {
+            camA -= 0.08f;
+            if (camA < -1.5533f) camA = -1.5533f;
+          }
+          if (key == 's' || key == 'S' || vk == 'S' || vk == VK_DOWN) {
+            camA += 0.08f;
+            if (camA > 1.5533f) camA = 1.5533f;
+          }
+          if (key == 'a' || key == 'A' || vk == 'A' || vk == VK_LEFT) camB -= 0.08f;
+          if (key == 'd' || key == 'D' || vk == 'D' || vk == VK_RIGHT) camB += 0.08f;
+          if (key == 'q' || key == 'Q' || vk == 'Q') camC -= 0.08f;
+          if (key == 'e' || key == 'E' || vk == 'E') camC += 0.08f;
+          if (key == '=' || key == '+' || vk == VK_OEM_PLUS || vk == VK_ADD) zoom_camera(-5.0f);
+          if (key == '-' || key == '_' || vk == VK_OEM_MINUS || vk == VK_SUBTRACT) zoom_camera(5.0f);
+          if (key == ' ' || vk == VK_SPACE) paused = !paused;
         } else if (ir[i].EventType == MOUSE_EVENT) {
           MOUSE_EVENT_RECORD mer = ir[i].Event.MouseEvent;
           int cur_x = mer.dwMousePosition.X - margin_x;
@@ -207,8 +222,8 @@ int main(void) {
                 is_mouse_dragging = true;
               }
               if (is_mouse_dragging && (dx != 0 || dy != 0)) {
-                camB -= (float)dx * 0.0075f;
-                camA += (float)dy * 0.0125f;
+                camB += (float)dx * 0.0075f;
+                camA -= (float)dy * 0.0125f;
                 if (camA > 1.5533f) camA = 1.5533f;
                 if (camA < -1.5533f) camA = -1.5533f;
                 last_drag_x = cur_x;
@@ -227,8 +242,8 @@ int main(void) {
               int dx = cur_x - last_mid_x;
               int dy = cur_y - last_mid_y;
               if (dx != 0 || dy != 0) {
-                camB -= (float)dx * 0.015f;
-                camA += (float)dy * 0.025f;
+                camB += (float)dx * 0.015f;
+                camA -= (float)dy * 0.025f;
                 if (camA > 1.5533f) camA = 1.5533f;
                 if (camA < -1.5533f) camA = -1.5533f;
                 last_mid_x = cur_x;
@@ -271,8 +286,8 @@ int main(void) {
                 int dy = cur_y - last_drag_y;
                 if (abs(cur_x - drag_start_x) > 1 || abs(cur_y - drag_start_y) > 1) is_mouse_dragging = true;
                 if (is_mouse_dragging && (dx != 0 || dy != 0)) {
-                  camB -= (float)dx * 0.015f;
-                  camA += (float)dy * 0.025f;
+                  camB += (float)dx * 0.015f;
+                  camA -= (float)dy * 0.025f;
                   if (camA > 1.5533f) camA = 1.5533f;
                   if (camA < -1.5533f) camA = -1.5533f;
                   last_drag_x = cur_x; last_drag_y = cur_y;
@@ -281,14 +296,18 @@ int main(void) {
             } else if (m_state == 'm') {
               if (b == 0) { is_mouse_dragging = false; left_down_prev = false; }
             }
-          }
+          } else if (next2 == 'A') { camA -= 0.08f; if (camA < -1.5533f) camA = -1.5533f; }
+          else if (next2 == 'B') { camA += 0.08f; if (camA > 1.5533f) camA = 1.5533f; }
+          else if (next2 == 'C') { camB += 0.08f; }
+          else if (next2 == 'D') { camB -= 0.08f; }
         }
       } else {
-        if (ch == 'q' || ch == 'Q') running = false;
         if (ch == 'w' || ch == 'W') { camA -= 0.08f; if (camA < -1.5533f) camA = -1.5533f; }
         if (ch == 's' || ch == 'S') { camA += 0.08f; if (camA > 1.5533f) camA = 1.5533f; }
         if (ch == 'a' || ch == 'A') camB -= 0.08f;
         if (ch == 'd' || ch == 'D') camB += 0.08f;
+        if (ch == 'q' || ch == 'Q') camC -= 0.08f;
+        if (ch == 'e' || ch == 'E') camC += 0.08f;
         if (ch == '=' || ch == '+') zoom_camera(-5.0f);
         if (ch == '-' || ch == '_') zoom_camera(5.0f);
         if (ch == ' ') paused = !paused;
@@ -371,7 +390,7 @@ int main(void) {
       renderBuffer[p++] = '\n';
     }
 
-    const char *hud = "  [Drag/WASD] Orbit   [Wheel/+/-] Zoom   [Space] Pause   [Esc] Quit\n";
+    const char *hud = "  [Drag/WASD/Arrows] Orbit   [Q/E] Roll   [Wheel/+/-] Zoom   [Space] Pause   [Esc] Quit\n";
     int hud_len = (int)strlen(hud);
     memcpy(&renderBuffer[p], hud, hud_len);
     p += hud_len;
