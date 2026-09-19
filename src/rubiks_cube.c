@@ -45,31 +45,36 @@ int _getch(void) {
 }
 #endif
 
+int margin_x = 0;
+
 void getTerminalSize(int *w, int *h) {
+  int raw_term_w, raw_term_h;
 #ifdef _WIN32
   CONSOLE_SCREEN_BUFFER_INFO csbi;
   HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
   if (GetConsoleScreenBufferInfo(hOut, &csbi)) {
-    *w = csbi.srWindow.Right - csbi.srWindow.Left + 1;
-    *h = csbi.srWindow.Bottom - csbi.srWindow.Top;
+    raw_term_w = csbi.srWindow.Right - csbi.srWindow.Left + 1;
+    raw_term_h = csbi.srWindow.Bottom - csbi.srWindow.Top;
   } else {
-    *w = 160;
-    *h = 44;
+    raw_term_w = 160;
+    raw_term_h = 44;
   }
 #else
   struct winsize ws;
   if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == 0 && ws.ws_col > 0 && ws.ws_row > 0) {
-    *w = ws.ws_col;
-    *h = ws.ws_row - 1;
+    raw_term_w = ws.ws_col;
+    raw_term_h = ws.ws_row - 1;
   } else {
-    *w = 160;
-    *h = 44;
+    raw_term_w = 160;
+    raw_term_h = 44;
   }
 #endif
-  if (*w < 40) *w = 40;
-  if (*h < 15) *h = 15;
-  *w = (int)(*w * 0.95f);
-  *h = (int)(*h * 0.95f);
+  if (raw_term_w < 40) raw_term_w = 40;
+  if (raw_term_h < 15) raw_term_h = 15;
+  *w = (int)(raw_term_w * 0.95f);
+  *h = (int)(raw_term_h * 0.95f);
+  margin_x = (raw_term_w - *w) / 2;
+  if (margin_x < 0) margin_x = 0;
 }
 
 typedef struct {
@@ -94,6 +99,21 @@ float K1 = 40;
 float distanceFromCam = 25.0f;
 
 float camA = 0.5f, camB = -0.5f;
+
+// Mouse input state
+int mouse_x = -1, mouse_y = -1;
+bool left_down_prev = false;
+bool mid_down_prev = false;
+bool is_mouse_dragging = false;
+int drag_start_x = -1, drag_start_y = -1;
+int last_drag_x = -1, last_drag_y = -1;
+int last_mid_x = -1, last_mid_y = -1;
+
+void zoom_camera(float delta) {
+  distanceFromCam += delta;
+  if (distanceFromCam < 15.0f) distanceFromCam = 15.0f;
+  if (distanceFromCam > 80.0f) distanceFromCam = 80.0f;
+}
 
 typedef enum { IDLE, ANIMATING } State;
 State current_state = IDLE;
@@ -391,14 +411,18 @@ void transform_point(float p[3], float rot[3][3], float pos[3], float out[3]) {
 }
 
 void apply_camera(float p[3], float out[3]) {
-  float y1 = p[1]*cos(camA) - p[2]*sin(camA);
-  float z1 = p[1]*sin(camA) + p[2]*cos(camA);
+  // Step 1: World Yaw around invariant Y-axis (turntable orbit - zero roll)
+  float x1 = p[0] * cosf(camB) + p[2] * sinf(camB);
+  float z1 = -p[0] * sinf(camB) + p[2] * cosf(camB);
+  float y1 = p[1];
   
-  float x2 = p[0]*cos(camB) + z1*sin(camB);
-  float z2 = -p[0]*sin(camB) + z1*cos(camB);
+  // Step 2: Camera Pitch around local X-axis
+  float y2 = y1 * cosf(camA) - z1 * sinf(camA);
+  float z2 = y1 * sinf(camA) + z1 * cosf(camA);
+  float x2 = x1;
   
   out[0] = x2;
-  out[1] = y1;
+  out[1] = y2;
   out[2] = z2;
 }
 
@@ -635,13 +659,13 @@ void draw_minimap_and_hud() {
     int ctrl_y = hud_y + total_height + 2;
     draw_block_text(hud_x, ctrl_y, "CONTROLS", font_scale, 47);
     ctrl_y += (5 * font_scale) + 2;
+    draw_block_text(hud_x, ctrl_y, "[DRAG/ARROWS] ORBIT", font_scale, 47);
+    ctrl_y += (5 * font_scale) + 2;
+    draw_block_text(hud_x, ctrl_y, "[WHEEL/+/-]   ZOOM", font_scale, 47);
+    ctrl_y += (5 * font_scale) + 2;
     draw_block_text(hud_x, ctrl_y, "[U/D/L/R/F/B] TURN CW", font_scale, 47);
     ctrl_y += (5 * font_scale) + 2;
     draw_block_text(hud_x, ctrl_y, "[SHIFT+KEY]   TURN CCW", font_scale, 47);
-    ctrl_y += (5 * font_scale) + 2;
-    draw_block_text(hud_x, ctrl_y, "[ARROWS]      ORBIT", font_scale, 47);
-    ctrl_y += (5 * font_scale) + 2;
-    draw_block_text(hud_x, ctrl_y, "[+/-]         SCALE", font_scale, 47);
     ctrl_y += (5 * font_scale) + 2;
     draw_block_text(hud_x, ctrl_y, "[SPACE]       RESET", font_scale, 47);
     ctrl_y += (5 * font_scale) + 2;
@@ -690,6 +714,7 @@ void render_frame() {
   int current_color = 0;
   
   for (int y = 0; y < height; y++) {
+    for (int m = 0; m < margin_x; m++) renderBuffer[p++] = ' ';
     for (int x = 0; x < width; x++) {
       int idx = x + y * width;
       int color = color_buffer[idx];
@@ -721,32 +746,128 @@ int main() {
   HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
   DWORD dwMode = 0;
   GetConsoleMode(hOut, &dwMode);
-  dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
-  SetConsoleMode(hOut, dwMode);
+  SetConsoleMode(hOut, dwMode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+  
+  HANDLE hIn = GetStdHandle(STD_INPUT_HANDLE);
+  DWORD origInMode = 0;
+  GetConsoleMode(hIn, &origInMode);
+  DWORD newInMode = origInMode | ENABLE_EXTENDED_FLAGS | ENABLE_WINDOW_INPUT | ENABLE_MOUSE_INPUT;
+  newInMode &= ~ENABLE_QUICK_EDIT_MODE;
+  SetConsoleMode(hIn, newInMode);
+#else
+  struct termios oldt, newt;
+  tcgetattr(STDIN_FILENO, &oldt);
+  newt = oldt;
+  newt.c_lflag &= ~(ICANON | ECHO);
+  tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+  int oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
+  fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
+  
+  printf("\033[?1003h\033[?1015h\033[?1006h");
+  fflush(stdout);
 #endif
   setvbuf(stdout, NULL, _IONBF, 0);
+  printf("\x1b[?25l"); // hide cursor
   
   init_cubies();
   scramble();
   
   printf("\x1b[2J");
-  while (1) {
-    if (_kbhit()) {
-      char key = _getch();
-      if (key == 27) break; // Esc
-      
-      if (key == ' ') { init_cubies(); scramble(); }
-      
-      if (key == '=' || key == '+') distanceFromCam = fmaxf(15.0f, distanceFromCam - 2.0f);
-      if (key == '-' || key == '_') distanceFromCam = fminf(80.0f, distanceFromCam + 2.0f);
+  bool running = true;
+  while (running) {
+#ifdef _WIN32
+    INPUT_RECORD ir[32];
+    DWORD read_count;
+    GetNumberOfConsoleInputEvents(hIn, &read_count);
+    if (read_count > 0) {
+      ReadConsoleInput(hIn, ir, 32, &read_count);
+      for (DWORD i = 0; i < read_count; i++) {
+        if (ir[i].EventType == KEY_EVENT && ir[i].Event.KeyEvent.bKeyDown) {
+          char key = ir[i].Event.KeyEvent.uChar.AsciiChar;
+          WORD vk = ir[i].Event.KeyEvent.wVirtualKeyCode;
+          if (key == 27 || key == 'q' || key == 'Q' || vk == VK_ESCAPE) running = false;
+          if (key == ' ') { init_cubies(); scramble(); }
+          if (key == '=' || key == '+') zoom_camera(-2.0f);
+          if (key == '-' || key == '_') zoom_camera(2.0f);
+          
+          if (vk == VK_UP) { camA -= 0.075f; if (camA < -1.5533f) camA = -1.5533f; }
+          if (vk == VK_DOWN) { camA += 0.075f; if (camA > 1.5533f) camA = 1.5533f; }
+          if (vk == VK_LEFT) camB += 0.075f;
+          if (vk == VK_RIGHT) camB -= 0.075f;
+          
+          int dir = 1;
+          char lower = key;
+          if (key >= 'A' && key <= 'Z') {
+            dir = -1;
+            lower = key + 32;
+          }
+          if (lower == 'r') start_animation(0, 1, dir);
+          if (lower == 'l') start_animation(0, -1, -dir); 
+          if (lower == 'd') start_animation(1, 1, dir); 
+          if (lower == 'u') start_animation(1, -1, -dir);
+          if (lower == 'b') start_animation(2, 1, dir); 
+          if (lower == 'f') start_animation(2, -1, -dir);
+        }
+        if (ir[i].EventType == MOUSE_EVENT) {
+          MOUSE_EVENT_RECORD mer = ir[i].Event.MouseEvent;
+          int cur_x = mer.dwMousePosition.X - margin_x;
+          int cur_y = mer.dwMousePosition.Y;
+          mouse_x = cur_x;
+          mouse_y = cur_y;
+          
+          if (mer.dwEventFlags & MOUSE_WHEELED) {
+            short wheel_delta = (short)HIWORD(mer.dwButtonState);
+            if (wheel_delta > 0) zoom_camera(-2.0f);
+            else if (wheel_delta < 0) zoom_camera(2.0f);
+          }
+          
+          bool left_down = (mer.dwButtonState & FROM_LEFT_1ST_BUTTON_PRESSED) != 0;
+          bool mid_down = (mer.dwButtonState & FROM_LEFT_2ND_BUTTON_PRESSED) != 0;
+          
+          if (left_down || mid_down) {
+            if (!left_down_prev && !mid_down_prev) {
+              drag_start_x = cur_x;
+              drag_start_y = cur_y;
+              last_drag_x = cur_x;
+              last_drag_y = cur_y;
+              is_mouse_dragging = false;
+            } else {
+              int dx = cur_x - last_drag_x;
+              int dy = cur_y - last_drag_y;
+              if (abs(cur_x - drag_start_x) > 1 || abs(cur_y - drag_start_y) > 1) {
+                is_mouse_dragging = true;
+              }
+              if (is_mouse_dragging && (dx != 0 || dy != 0)) {
+                camB -= (float)dx * 0.0075f;
+                camA += (float)dy * 0.0125f;
+                if (camA > 1.5533f) camA = 1.5533f;
+                if (camA < -1.5533f) camA = -1.5533f;
+                last_drag_x = cur_x;
+                last_drag_y = cur_y;
+              }
+            }
+          } else {
+            is_mouse_dragging = false;
+          }
+          left_down_prev = left_down;
+          mid_down_prev = mid_down;
+        }
+      }
+    }
+#else
+    int ch;
+    while ((ch = getchar()) != EOF) {
+      if (ch == 27 || ch == 'q' || ch == 'Q') running = false;
+      if (ch == ' ') { init_cubies(); scramble(); }
+      if (ch == '=' || ch == '+') zoom_camera(-2.0f);
+      if (ch == '-' || ch == '_') zoom_camera(2.0f);
       
       int dir = 1;
-      char lower = key;
-      if (key >= 'A' && key <= 'Z') {
+      char lower = ch;
+      if (ch >= 'A' && ch <= 'Z') {
         dir = -1;
-        lower = key + 32;
+        lower = ch + 32;
       }
-      
       if (lower == 'r') start_animation(0, 1, dir);
       if (lower == 'l') start_animation(0, -1, -dir); 
       if (lower == 'd') start_animation(1, 1, dir); 
@@ -754,25 +875,54 @@ int main() {
       if (lower == 'b') start_animation(2, 1, dir); 
       if (lower == 'f') start_animation(2, -1, -dir);
       
-#ifdef _WIN32
-      if (key == -32 || key == 224) { 
-        key = _getch();
-        if (key == 72) camA -= 0.1f; 
-        if (key == 80) camA += 0.1f; 
-        if (key == 75) camB -= 0.1f; 
-        if (key == 77) camB += 0.1f; 
+      if (ch == '\033') {
+        int next1 = getchar();
+        if (next1 == '[') {
+          int next2 = getchar();
+          if (next2 == 'A') { camA -= 0.075f; if (camA < -1.5533f) camA = -1.5533f; }
+          else if (next2 == 'B') { camA += 0.075f; if (camA > 1.5533f) camA = 1.5533f; }
+          else if (next2 == 'C') camB -= 0.075f;
+          else if (next2 == 'D') camB += 0.075f;
+          else if (next2 == '<') {
+            int b = 0, mx = 0, my = 0;
+            char m_state;
+            scanf("%d;%d;%d%c", &b, &mx, &my, &m_state);
+            int cur_x = mx - 1 - margin_x;
+            int cur_y = my - 1;
+            mouse_x = cur_x;
+            mouse_y = cur_y;
+            if (b == 64) zoom_camera(-2.0f);
+            else if (b == 65) zoom_camera(2.0f);
+            else if (m_state == 'M') {
+              if (b == 0) {
+                drag_start_x = cur_x; drag_start_y = cur_y;
+                last_drag_x = cur_x; last_drag_y = cur_y;
+                is_mouse_dragging = false;
+                left_down_prev = true;
+              } else if (b == 32) {
+                int dx = cur_x - last_drag_x;
+                int dy = cur_y - last_drag_y;
+                if (abs(cur_x - drag_start_x) > 1 || abs(cur_y - drag_start_y) > 1) {
+                  is_mouse_dragging = true;
+                }
+                if (is_mouse_dragging && (dx != 0 || dy != 0)) {
+                  camB -= (float)dx * 0.0175f;
+                  camA += (float)dy * 0.0325f;
+                  if (camA > 1.5533f) camA = 1.5533f;
+                  if (camA < -1.5533f) camA = -1.5533f;
+                  last_drag_x = cur_x;
+                  last_drag_y = cur_y;
+                }
+              }
+            } else if (m_state == 'm') {
+              is_mouse_dragging = false;
+              left_down_prev = false;
+            }
+          }
+        }
       }
-#else
-      if (key == '\033') { 
-        _getch(); 
-        char seq = _getch();
-        if (seq == 'A') camA -= 0.1f; 
-        if (seq == 'B') camA += 0.1f; 
-        if (seq == 'C') camB += 0.1f; 
-        if (seq == 'D') camB -= 0.1f; 
-      }
-#endif
     }
+#endif
     
     update_animation();
     
@@ -784,7 +934,7 @@ int main() {
       zBuffer = (float *)realloc(zBuffer, width * height * sizeof(float));
       char_buffer = (char *)realloc(char_buffer, width * height * sizeof(char));
       color_buffer = (int *)realloc(color_buffer, width * height * sizeof(int));
-      renderBuffer = (char *)realloc(renderBuffer, 10 + height * (width * 15 + 1) + 256);
+      renderBuffer = (char *)realloc(renderBuffer, 10 + height * (width * 15 + margin_x + 1) + 256);
       K1 = height * 0.9f;
       printf("\x1b[2J");
     }
@@ -793,6 +943,10 @@ int main() {
     usleep(16000); 
   }
   
-  printf("\x1b[0m\x1b[2J");
+#ifndef _WIN32
+  printf("\033[?1003l\033[?1015l\033[?1006l");
+  tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+#endif
+  printf("\x1b[?25h\x1b[0m\x1b[2J");
   return 0;
 }

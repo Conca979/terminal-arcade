@@ -132,7 +132,7 @@ static void apply_color(float intensity, vec3 bg_color, char* out_buf) {
   
   // ASCII ramp
   const char* ramp = " .,-~:;=!*#$@";
-  int num_chars = strlen(ramp);
+  int num_chars = (int)strlen(ramp);
   
   // Scale intensity for visual effect
   float visual_i = intensity * 1.5f;
@@ -166,85 +166,89 @@ static void apply_color(float intensity, vec3 bg_color, char* out_buf) {
   sprintf(out_buf, "\x1b[38;2;%d;%d;%dm\x1b[48;2;%d;%d;%dm%c\x1b[0m", r, g, b, bg_r, bg_g, bg_b, c);
 }
 
-// Read keyboard without blocking
-static int kbhit_local() {
-#ifdef _WIN32
-  return _kbhit();
-#else
-  struct termios oldt, newt;
-  int ch;
-  int oldf;
-  tcgetattr(STDIN_FILENO, &oldt);
-  newt = oldt;
-  newt.c_lflag &= ~(ICANON | ECHO);
-  tcsetattr(STDIN_FILENO, TCSANOW, &newt);
-  oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
-  fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
-  ch = getchar();
-  tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
-  fcntl(STDIN_FILENO, F_SETFL, oldf);
-  if (ch != EOF) {
-    ungetc(ch, stdin);
-    return 1;
-  }
-  return 0;
-#endif
-}
-
-static int getch_local() {
-#ifdef _WIN32
-  return _getch();
-#else
-  struct termios oldt, newt;
-  int ch;
-  tcgetattr(STDIN_FILENO, &oldt);
-  newt = oldt;
-  newt.c_lflag &= ~(ICANON | ECHO);
-  tcsetattr(STDIN_FILENO, TCSANOW, &newt);
-  ch = getchar();
-  tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
-  return ch;
-#endif
-}
+static int raw_term_w = 120, raw_term_h = 30;
+static int margin_x = 0;
 
 void get_terminal_size(int *width, int *height) {
 #ifdef _WIN32
   CONSOLE_SCREEN_BUFFER_INFO csbi;
-  if (!GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi)) {
-    *width = 80;
-    *height = 24;
+  HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+  if (GetConsoleScreenBufferInfo(hOut, &csbi)) {
+    raw_term_w = csbi.srWindow.Right - csbi.srWindow.Left + 1;
+    raw_term_h = csbi.srWindow.Bottom - csbi.srWindow.Top;
   } else {
-    *width = csbi.srWindow.Right - csbi.srWindow.Left + 1;
-    *height = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
+    raw_term_w = 120;
+    raw_term_h = 30;
   }
 #else
   struct winsize w;
-  if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &w) == -1 || w.ws_col == 0 || w.ws_row == 0) {
-    *width = 80;
-    *height = 24;
+  if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &w) == 0 && w.ws_col > 0 && w.ws_row > 0) {
+    raw_term_w = w.ws_col;
+    raw_term_h = w.ws_row - 1;
   } else {
-    *width = w.ws_col;
-    *height = w.ws_row;
+    raw_term_w = 120;
+    raw_term_h = 30;
   }
 #endif
-  if (*width <= 0) *width = 80;
-  if (*height <= 0) *height = 24;
+  if (raw_term_w < 40) raw_term_w = 40;
+  if (raw_term_h < 15) raw_term_h = 15;
 
-  // Scale constraints
-  *width = (int)(*width * 0.95f);
-  *height = (int)(*height * 0.95f);
+  *width = (int)(raw_term_w * 0.95f);
+  *height = (int)(raw_term_h * 0.95f);
+  margin_x = (raw_term_w - *width) / 2;
+  if (margin_x < 0) margin_x = 0;
 }
 
-int main() {
+// Camera State (Zero-roll Turntable Orbit)
+static float camera_dist = 12.0f;
+static float camera_yaw = 0.0f;
+static float camera_pitch = 0.2f;
+
+void zoom_camera(float delta) {
+  camera_dist += delta;
+  if (camera_dist < 3.0f) camera_dist = 3.0f;
+  if (camera_dist > 40.0f) camera_dist = 40.0f;
+}
+
+// Mouse input state
+static int mouse_x = -1, mouse_y = -1;
+static bool left_down_prev = false;
+static bool mid_down_prev = false;
+static bool is_mouse_dragging = false;
+static int drag_start_x = -1, drag_start_y = -1;
+static int last_drag_x = -1, last_drag_y = -1;
+static int last_mid_x = -1, last_mid_y = -1;
+
+int main(void) {
+  bool running = true;
+
 #ifdef _WIN32
   HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
   DWORD dwMode = 0;
   GetConsoleMode(hOut, &dwMode);
   SetConsoleMode(hOut, dwMode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+
+  HANDLE hIn = GetStdHandle(STD_INPUT_HANDLE);
+  DWORD origInMode = 0;
+  GetConsoleMode(hIn, &origInMode);
+  DWORD newInMode = origInMode | ENABLE_EXTENDED_FLAGS | ENABLE_WINDOW_INPUT | ENABLE_MOUSE_INPUT;
+  newInMode &= ~ENABLE_QUICK_EDIT_MODE;
+  SetConsoleMode(hIn, newInMode);
+#else
+  struct termios oldt, newt;
+  tcgetattr(STDIN_FILENO, &oldt);
+  newt = oldt;
+  newt.c_lflag &= ~(ICANON | ECHO);
+  tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+  int oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
+  fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
+
+  printf("\033[?1003h\033[?1015h\033[?1006h");
+  fflush(stdout);
 #endif
  
   setvbuf(stdout, NULL, _IONBF, 0);
-  printf("\x1b[2J"); // Clear screen
+  printf("\x1b[2J\x1b[?25l");
   
   int width = 0, height = 0;
   char *renderBuffer = NULL;
@@ -254,37 +258,152 @@ int main() {
   float R_inner = 2.6f * Rs;
   float R_outer = 8.0f * Rs;
   
-  float camera_dist = 12.0f;
-  float camera_yaw = 0.0f;
-  float camera_pitch = 0.2f;
-
   float t = 0;
 
-  
-  while (1) {
-    if (kbhit_local()) {
-      int key = getch_local();
-      if (key == 27) break; // ESC
-      if (key == 'w' || key == 'W') camera_pitch -= 0.1f;
-      if (key == 's' || key == 'S') camera_pitch += 0.1f;
-      if (key == 'a' || key == 'A') camera_yaw -= 0.1f;
-      if (key == 'd' || key == 'D') camera_yaw += 0.1f;
-      if (key == '=') camera_dist -= 0.5f;
-      if (key == '-') camera_dist += 0.5f;
-      // Arrow keys (ANSI escape sequence handling for Linux/Mac and Windows)
-      if (key == 224 || key == 91) { // Windows extended or Unix CSI
-        int arr = getch_local();
-        if (arr == 91) arr = getch_local(); // Mac/Linux double sequence
-        if (arr == 'A' || arr == 72) camera_pitch -= 0.1f; // Up
-        if (arr == 'B' || arr == 80) camera_pitch += 0.1f; // Down
-        if (arr == 'C' || arr == 77) camera_yaw += 0.1f;   // Right
-        if (arr == 'D' || arr == 75) camera_yaw -= 0.1f;   // Left
+  while (running) {
+#ifdef _WIN32
+    INPUT_RECORD ir[32];
+    DWORD read_count = 0;
+    GetNumberOfConsoleInputEvents(hIn, &read_count);
+    if (read_count > 0) {
+      ReadConsoleInput(hIn, ir, 32, &read_count);
+      for (DWORD i = 0; i < read_count; i++) {
+        if (ir[i].EventType == KEY_EVENT && ir[i].Event.KeyEvent.bKeyDown) {
+          char key = ir[i].Event.KeyEvent.uChar.AsciiChar;
+          WORD vk = ir[i].Event.KeyEvent.wVirtualKeyCode;
+          if (key == 27 || vk == VK_ESCAPE) running = false;
+          if (key == 'w' || key == 'W' || vk == VK_UP) {
+            camera_pitch += 0.08f;
+            if (camera_pitch > 1.5533f) camera_pitch = 1.5533f;
+          }
+          if (key == 's' || key == 'S' || vk == VK_DOWN) {
+            camera_pitch -= 0.08f;
+            if (camera_pitch < -1.5533f) camera_pitch = -1.5533f;
+          }
+          if (key == 'a' || key == 'A' || vk == VK_LEFT) camera_yaw -= 0.08f;
+          if (key == 'd' || key == 'D' || vk == VK_RIGHT) camera_yaw += 0.08f;
+          if (key == '=' || key == '+') zoom_camera(-0.6f);
+          if (key == '-' || key == '_') zoom_camera(0.6f);
+        } else if (ir[i].EventType == MOUSE_EVENT) {
+          MOUSE_EVENT_RECORD mer = ir[i].Event.MouseEvent;
+          int cur_x = mer.dwMousePosition.X - margin_x;
+          int cur_y = mer.dwMousePosition.Y;
+          mouse_x = cur_x;
+          mouse_y = cur_y;
+
+          if (mer.dwEventFlags & MOUSE_WHEELED) {
+            short wheel_delta = (short)HIWORD(mer.dwButtonState);
+            if (wheel_delta > 0) zoom_camera(-0.6f);
+            else if (wheel_delta < 0) zoom_camera(0.6f);
+          }
+
+          bool left_down = (mer.dwButtonState & FROM_LEFT_1ST_BUTTON_PRESSED) != 0;
+          bool mid_down = (mer.dwButtonState & FROM_LEFT_2ND_BUTTON_PRESSED) != 0;
+
+          if (left_down) {
+            if (!left_down_prev) {
+              drag_start_x = cur_x;
+              drag_start_y = cur_y;
+              last_drag_x = cur_x;
+              last_drag_y = cur_y;
+              is_mouse_dragging = false;
+            } else {
+              int dx = cur_x - last_drag_x;
+              int dy = cur_y - last_drag_y;
+              if (abs(cur_x - drag_start_x) > 1 || abs(cur_y - drag_start_y) > 1) {
+                is_mouse_dragging = true;
+              }
+              if (is_mouse_dragging && (dx != 0 || dy != 0)) {
+                camera_yaw -= (float)dx * 0.0075f;
+                camera_pitch += (float)dy * 0.0125f;
+                if (camera_pitch > 1.5533f) camera_pitch = 1.5533f;
+                if (camera_pitch < -1.5533f) camera_pitch = -1.5533f;
+                last_drag_x = cur_x;
+                last_drag_y = cur_y;
+              }
+            }
+          } else if (left_down_prev) {
+            is_mouse_dragging = false;
+          }
+
+          if (mid_down) {
+            if (!mid_down_prev) {
+              last_mid_x = cur_x;
+              last_mid_y = cur_y;
+            } else {
+              int dx = cur_x - last_mid_x;
+              int dy = cur_y - last_mid_y;
+              if (dx != 0 || dy != 0) {
+                camera_yaw -= (float)dx * 0.015f;
+                camera_pitch += (float)dy * 0.025f;
+                if (camera_pitch > 1.5533f) camera_pitch = 1.5533f;
+                if (camera_pitch < -1.5533f) camera_pitch = -1.5533f;
+                last_mid_x = cur_x;
+                last_mid_y = cur_y;
+              }
+            }
+          }
+
+          left_down_prev = left_down;
+          mid_down_prev = mid_down;
+        }
       }
     }
-    
-    if (camera_pitch > 1.5f) camera_pitch = 1.5f;
-    if (camera_pitch < -1.5f) camera_pitch = -1.5f;
-    if (camera_dist < 3.0f) camera_dist = 3.0f;
+#else
+    int ch;
+    while ((ch = getchar()) != EOF) {
+      if (ch == 27) {
+        int next1 = getchar();
+        if (next1 == EOF) { running = false; break; }
+        if (next1 == '[') {
+          int next2 = getchar();
+          if (next2 == '<') {
+            int b = 0, mx = 0, my = 0;
+            char m_state = 0;
+            scanf("%d;%d;%d%c", &b, &mx, &my, &m_state);
+            int cur_x = mx - 1 - margin_x;
+            int cur_y = my - 1;
+            mouse_x = cur_x;
+            mouse_y = cur_y;
+            if (b == 64) zoom_camera(-0.6f);
+            else if (b == 65) zoom_camera(0.6f);
+            else if (m_state == 'M') {
+              if (b == 0) {
+                drag_start_x = cur_x; drag_start_y = cur_y;
+                last_drag_x = cur_x; last_drag_y = cur_y;
+                is_mouse_dragging = false;
+                left_down_prev = true;
+              } else if (b == 32) {
+                int dx = cur_x - last_drag_x;
+                int dy = cur_y - last_drag_y;
+                if (abs(cur_x - drag_start_x) > 1 || abs(cur_y - drag_start_y) > 1) is_mouse_dragging = true;
+                if (is_mouse_dragging && (dx != 0 || dy != 0)) {
+                  camera_yaw -= (float)dx * 0.015f;
+                  camera_pitch += (float)dy * 0.025f;
+                  if (camera_pitch > 1.5533f) camera_pitch = 1.5533f;
+                  if (camera_pitch < -1.5533f) camera_pitch = -1.5533f;
+                  last_drag_x = cur_x; last_drag_y = cur_y;
+                }
+              }
+            } else if (m_state == 'm') {
+              if (b == 0) { is_mouse_dragging = false; left_down_prev = false; }
+            }
+          } else if (next2 == 'A') { camera_pitch += 0.08f; if (camera_pitch > 1.5533f) camera_pitch = 1.5533f; }
+          else if (next2 == 'B') { camera_pitch -= 0.08f; if (camera_pitch < -1.5533f) camera_pitch = -1.5533f; }
+          else if (next2 == 'C') camera_yaw += 0.08f;
+          else if (next2 == 'D') camera_yaw -= 0.08f;
+        }
+      } else {
+        if (ch == 'q' || ch == 'Q') running = false;
+        if (ch == 'w' || ch == 'W') { camera_pitch += 0.08f; if (camera_pitch > 1.5533f) camera_pitch = 1.5533f; }
+        if (ch == 's' || ch == 'S') { camera_pitch -= 0.08f; if (camera_pitch < -1.5533f) camera_pitch = -1.5533f; }
+        if (ch == 'a' || ch == 'A') camera_yaw -= 0.08f;
+        if (ch == 'd' || ch == 'D') camera_yaw += 0.08f;
+        if (ch == '=' || ch == '+') zoom_camera(-0.6f);
+        if (ch == '-' || ch == '_') zoom_camera(0.6f);
+      }
+    }
+#endif
 
     int new_width, new_height;
     get_terminal_size(&new_width, &new_height);
@@ -293,13 +412,13 @@ int main() {
       int old_height = height;
       width = new_width;
       height = new_height;
-      renderBuffer = realloc(renderBuffer, height * (width * 64 + 2)); 
+      renderBuffer = (char*)realloc(renderBuffer, height * (width * 64 + margin_x + 2) + 512); 
       if (rowBuffers) {
         for(int i = 0; i < old_height; i++) if (rowBuffers[i]) free(rowBuffers[i]);
         free(rowBuffers);
       }
-      rowBuffers = malloc(height * sizeof(char*));
-      for(int i = 0; i < height; i++) rowBuffers[i] = malloc(width * 64 + 2);
+      rowBuffers = (char**)malloc(height * sizeof(char*));
+      for(int i = 0; i < height; i++) rowBuffers[i] = (char*)malloc(width * 64 + 2);
     }
 
     vec3 cam_pos = {
@@ -314,9 +433,9 @@ int main() {
     vec3 up = cross(right, forward);
 
     float fov = 1.0f;
-    float aspect = (float)width / (float)(height * 2.0f); // Terminal characters are ~2x as tall as they are wide
+    float aspect = (float)width / (float)(height * 2.0f); // Terminal characters are ~2x as tall as wide
 
-    // Parallelized raymarching loop!
+    // Parallelized raymarching loop
     #pragma omp parallel for schedule(dynamic)
     for (int y = 0; y < height; y++) {
       char* r_ptr = rowBuffers[y];
@@ -350,8 +469,8 @@ int main() {
           float dist_to_horizon = r - Rs;
           
           float dt = 0.05f * dist_to_horizon;
-          if (dt < 0.02f) dt = 0.02f; // minimum step
-          if (dt > 0.5f) dt = 0.5f;   // maximum step
+          if (dt < 0.02f) dt = 0.02f;
+          if (dt > 0.5f) dt = 0.5f;
           
           vec3 prev_p = state.p;
           rk4_step(&state, dt, Rs);
@@ -363,24 +482,21 @@ int main() {
             float hit_r = sqrtf(hit_p.x * hit_p.x + hit_p.z * hit_p.z);
             
             if (hit_r > R_inner && hit_r < R_outer) {
-              // Disk orbital velocity (Newtonian approx for stability, accurate visually)
               float v_orb = 1.0f / sqrtf(2.0f * (hit_r - Rs)); 
               vec3 V_fluid = {-hit_p.z / hit_r * v_orb, 0.0f, hit_p.x / hit_r * v_orb};
               
-              // Doppler shift
               float dot_v = dot(normalize(state.v), V_fluid);
               float doppler = sqrtf(1.0f - v_orb * v_orb) / (1.0f - dot_v);
               
-              // Analytic disk texture (trigonometric banding)
               float phi = atan2f(hit_p.z, hit_p.x);
               float tex = (sinf(10.0f * hit_r) * 0.5f + 0.5f) * (cosf(4.0f * phi - t * 2.0f) * 0.5f + 0.5f);
               float base_glow = 1.5f / (hit_r - Rs);
               
               float add_intensity = (base_glow + tex * 0.5f) * doppler * doppler * doppler;
               intensity += add_intensity * ray_energy;
-              ray_energy *= 0.3f; // Semi-transparent disk
+              ray_energy *= 0.3f;
               
-              if (ray_energy < 0.05f) break; // Opaque enough
+              if (ray_energy < 0.05f) break;
             }
           }
         }
@@ -393,33 +509,46 @@ int main() {
       strcpy(r_ptr, "\n");
     }
     
-    // Concatenate all row buffers sequentially to the main renderBuffer
+    // Concatenate all row buffers sequentially with margin_x
     renderBuffer[0] = '\0';
     char* main_ptr = renderBuffer;
     for (int y = 0; y < height; y++) {
+      for (int m = 0; m < margin_x; m++) {
+        *main_ptr++ = ' ';
+      }
       strcpy(main_ptr, rowBuffers[y]);
       main_ptr += strlen(rowBuffers[y]);
     }
+
+    const char *hud = "  [Drag/WASD] Orbit Camera   [Wheel/+/-] Zoom   [Esc] Quit\n";
+    strcpy(main_ptr, hud);
+    main_ptr += strlen(hud);
     
     // Reset cursor to top-left
     size_t total_bytes = main_ptr - renderBuffer;
     printf("\x1b[H");
     fwrite(renderBuffer, 1, total_bytes, stdout);
     
-
-    
     t += 0.05f;
 #ifdef _WIN32
-    Sleep(8); // Lock to ~60 FPS for stability under heavy raymarching load
+    Sleep(8);
 #else
     usleep(33000);
 #endif
   }
   
-  // Free resources
+#ifdef _WIN32
+  SetConsoleMode(hIn, origInMode);
+#else
+  printf("\033[?1003l\033[?1015l\033[?1006l");
+  tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+  fcntl(STDIN_FILENO, F_SETFL, oldf);
+#endif
+
+  printf("\x1b[?25h\x1b[0m\n");
   if (renderBuffer) free(renderBuffer);
   if (rowBuffers) {
-    for(int i=0; i<height; i++) if (rowBuffers[i]) free(rowBuffers[i]);
+    for(int i = 0; i < height; i++) if (rowBuffers[i]) free(rowBuffers[i]);
     free(rowBuffers);
   }
 
