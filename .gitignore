@@ -5,7 +5,9 @@
 
 # Runtime data
 *highscore.txt
-games/**/2048_highscore.txt
+*scores.txt
+games/**/*highscore.txt
+games/**/*scores.txt
 
 # Editor and IDE metadata
 .vscode/

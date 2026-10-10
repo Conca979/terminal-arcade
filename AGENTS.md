@@ -1,84 +1,114 @@
 # Terminal Arcade in C
 
-A collection of high-performance, guideline-compliant terminal games written in C for Windows console environments with ANSI color rendering.
+A collection of high-performance, modular terminal games written in C for Windows console environments with 60 FPS flicker-free ANSI color rendering.
 
-## Games Collection
+## Architecture & Extensible Project Layout
 
-1. **Tetris CLI**: Classic guideline Tetris featuring Super Rotation System (SRS), 7-bag randomizer, lock delay, hold piece, 3-piece next queue, and line-clear animations.
-2. **2048 CLI**: Tile-sliding mathematical puzzle featuring powers-of-two merges, 32-step undo history, custom ANSI tile color palette, and high score tracking.
+```
+terminal-arcade/
+├── src/
+│   └── main.c                  # Master Arcade interactive terminal launcher
+├── games/
+│   ├── tetris/                 # Classic Guideline Tetris with SRS & 7-bag
+│   │   ├── include/            # config.h, game.h, input.h, platform.h, render.h
+│   │   ├── src/                # game.c, input.c, main.c, platform.c, render.c
+│   │   ├── test_tetris.c       # Unit test suite
+│   │   ├── Makefile            # Standalone build pipeline
+│   │   └── README.md           # Game guide
+│   ├── 2048/                   # 4x4 sliding tile puzzle with 32-step undo
+│   │   ├── include/            # config.h, game.h, input.h, platform.h, render.h
+│   │   ├── src/                # game.c, input.c, main.c, platform.c, render.c
+│   │   ├── test_2048.c         # Unit test suite
+│   │   ├── Makefile            # Standalone build pipeline
+│   │   └── README.md           # Game guide
+│   └── minesweeper/            # First-click safe sweeper with chords & timer
+│       ├── include/            # config.h, game.h, input.h, platform.h, render.h
+│       ├── src/                # game.c, input.c, main.c, platform.c, render.c
+│       ├── test_minesweeper.c  # Unit test suite
+│       ├── Makefile            # Standalone build pipeline
+│       └── README.md           # Game guide
+├── Makefile                    # Master build & test pipeline
+├── README.md                   # Repository guide and controls
+└── AGENTS.md                   # Architecture & developer reference
+```
 
 ---
 
-## Architecture & Module Boundaries
+## Adding a New Game to the Arcade (Extensibility Guide)
 
-### 1. Tetris CLI (`./`)
-- **[include/config.h](file:///c:/Users/admin/projects/personal/tetris/include/config.h)**: Global constants, tetromino enumerations ([TetrominoType](file:///c:/Users/admin/projects/personal/tetris/include/config.h#L17-L27)), playfield dimensions, state enumerations ([PlayState](file:///c:/Users/admin/projects/personal/tetris/include/config.h#L29-L36)), and action definitions ([GameAction](file:///c:/Users/admin/projects/personal/tetris/include/config.h#L38-L50)).
-- **[include/platform.h](file:///c:/Users/admin/projects/personal/tetris/include/platform.h)** / **[src/platform.c](file:///c:/Users/admin/projects/personal/tetris/src/platform.c)**: Windows console initialization, UTF-8 code page setup ([platform_init](file:///c:/Users/admin/projects/personal/tetris/src/platform.c#L24-L58)), virtual terminal sequence processing, high-resolution frame timer ([platform_get_time_ms](file:///c:/Users/admin/projects/personal/tetris/src/platform.c#L80-L85)), and clean signal/exit restoration ([platform_cleanup](file:///c:/Users/admin/projects/personal/tetris/src/platform.c#L60-L78)).
-- **[include/input.h](file:///c:/Users/admin/projects/personal/tetris/include/input.h)** / **[src/input.c](file:///c:/Users/admin/projects/personal/tetris/src/input.c)**: Non-blocking console input handler ([input_get_action](file:///c:/Users/admin/projects/personal/tetris/src/input.c#L4-L63)) mapping keyboard arrow keys, WASD, Space, Hold, Pause, and Quit controls.
-- **[include/game.h](file:///c:/Users/admin/projects/personal/tetris/include/game.h)** / **[src/game.c](file:///c:/Users/admin/projects/personal/tetris/src/game.c)**: Core game logic, state machine ([GameState](file:///c:/Users/admin/projects/personal/tetris/include/game.h#L18-L47)), SRS wall kicks, 7-bag randomizer, lock delay, collision checking ([game_check_collision](file:///c:/Users/admin/projects/personal/tetris/src/game.c#L183-L203)), ghost piece calculations ([game_get_ghost_y](file:///c:/Users/admin/projects/personal/tetris/src/game.c#L205-L211)), scoring, and high score persistence ([game_save_high_score](file:///c:/Users/admin/projects/personal/tetris/src/game.c#L290-L296)).
-- **[include/render.h](file:///c:/Users/admin/projects/personal/tetris/include/render.h)** / **[src/render.c](file:///c:/Users/admin/projects/personal/tetris/src/render.c)**: Double-buffered terminal renderer ([render_frame](file:///c:/Users/admin/projects/personal/tetris/src/render.c#L110-L315)) with ghost piece, hold box, next queue, and overlays.
-- **[src/main.c](file:///c:/Users/admin/projects/personal/tetris/src/main.c)**: 60 FPS pacing game loop ([main](file:///c:/Users/admin/projects/personal/tetris/src/main.c#L8-L43)).
+To add any new game (e.g. `snake`, `space-invaders`, `pong`):
 
-### 2. 2048 CLI (`games/2048/`)
-- **[games/2048/include/config.h](file:///c:/Users/admin/projects/personal/tetris/games/2048/include/config.h)**: Grid dimensions, move directions, action types, and game states.
-- **[games/2048/include/game.h](file:///c:/Users/admin/projects/personal/tetris/games/2048/include/game.h)** / **[games/2048/src/game.c](file:///c:/Users/admin/projects/personal/tetris/games/2048/src/game.c)**: Slide merging logic, 32-state undo snapshot stack, spawn randomizer, win/loss detection, and high score persistence.
-- **[games/2048/include/input.h](file:///c:/Users/admin/projects/personal/tetris/games/2048/include/input.h)** / **[games/2048/src/input.c](file:///c:/Users/admin/projects/personal/tetris/games/2048/src/input.c)**: Keyboard event handling supporting Arrow keys, WASD, Vim (HJKL), Undo, and Restart.
-- **[games/2048/include/platform.h](file:///c:/Users/admin/projects/personal/tetris/games/2048/include/platform.h)** / **[games/2048/src/platform.c](file:///c:/Users/admin/projects/personal/tetris/games/2048/src/platform.c)**: Win32 console VT processing, UTF-8 mode, and signal cleanup.
-- **[games/2048/include/render.h](file:///c:/Users/admin/projects/personal/tetris/games/2048/include/render.h)** / **[games/2048/src/render.c](file:///c:/Users/admin/projects/personal/tetris/games/2048/src/render.c)**: Double-buffered 4x4 tile grid with individual color palettes by power-of-two, stats bar, and modals.
-- **[games/2048/src/main.c](file:///c:/Users/admin/projects/personal/tetris/games/2048/src/main.c)**: Event-driven game loop.
+1. **Create the Game Directory**:
+   `games/<game_name>/` containing:
+   - `include/`: Game definitions, structures, and headers.
+   - `src/`: Game logic, input handling, rendering, and entry loop.
+   - `Makefile`: Standalone build pipeline with `all`, `test`, and `clean` targets.
+   - `test_<game_name>.c`: Automated unit tests.
+
+2. **Register in Master [Makefile](file:///c:/Users/admin/projects/personal/tetris/Makefile)**:
+   Add a target calling `$(MAKE) -C games/<game_name>` in `all`, `test`, and `clean`.
+
+3. **Register in Arcade Hub ([src/main.c](file:///c:/Users/admin/projects/personal/tetris/src/main.c))**:
+   Append a new entry to the `GAMES[]` table with its title, description, and executable path.
 
 ---
 
-## Build Pipeline
+## Build Pipeline Reference
 
-Both games use GCC with `-Wall -Wextra -O2` standards and `make`.
-
-- **Build Tetris**:
+- **Build Arcade Hub & All Games**:
   ```bash
   make
   ```
-- **Test Tetris**:
+  Produces `arcade.exe`, `games/tetris/tetris.exe`, `games/2048/2048.exe`, and `games/minesweeper/minesweeper.exe`.
+
+- **Run Full Automated Test Suite**:
   ```bash
   make test
+  ```
+  Executes unit tests across all games in sequence.
+
+- **Build Individual Games**:
+  ```bash
+  make tetris
+  make 2048
+  make minesweeper
   ```
 
-- **Build 2048**:
+- **Clean Entire Workspace**:
   ```bash
-  cd games/2048
-  make
-  ```
-- **Test 2048**:
-  ```bash
-  cd games/2048
-  make test
+  make clean
   ```
 
 ---
 
 ## Controls Reference
 
-### Tetris
-| Key | Action |
-| --- | --- |
-| `←` / `A` | Move Left |
-| `→` / `D` | Move Right |
-| `↑` / `W` / `X` | Rotate Clockwise |
-| `Z` | Rotate Counter-Clockwise |
-| `↓` / `S` | Soft Drop |
-| `Space` | Hard Drop |
-| `C` / `H` / `0` | Hold Piece |
-| `P` / `Esc` | Pause / Resume |
-| `R` | Restart Game |
-| `Q` | Quit |
+### Arcade Hub Launcher (`arcade.exe`)
+- `↑` / `↓` / `W` / `S`: Navigate game selection
+- `Enter` / `Space`: Launch selected game
+- `1` - `3`: Quick select and launch
+- `Q`: Quit arcade
 
-### 2048
-| Key | Alternative | Action |
-| --- | --- | --- |
-| `↑` | `W` / `K` | Slide Up |
-| `↓` | `S` / `J` | Slide Down |
-| `←` | `A` / `H` | Slide Left |
-| `→` | `D` / `L` | Slide Right |
-| `U` | `Z` | Undo Move |
-| `C` | `Enter` / `Space` | Continue Playing |
-| `R` | — | Restart Game |
-| `Q` | `Esc` | Quit |
+### Tetris (`games/tetris/tetris.exe`)
+- `←` / `→` or `A` / `D`: Move left / right
+- `↑` / `W` / `X`: Rotate clockwise (SRS)
+- `Z`: Rotate counter-clockwise
+- `↓` / `S`: Soft drop
+- `Space`: Hard drop
+- `C` / `H` / `0`: Hold piece
+- `P` / `Esc`: Pause / resume
+- `R`: Restart | `Q`: Quit
+
+### 2048 (`games/2048/2048.exe`)
+- `↑` / `↓` / `←` / `→` or `W` / `S` / `A` / `D` or `H` / `J` / `K` / `L`: Slide tiles
+- `U` / `Z`: Undo move (up to 32 moves)
+- `C` / `Enter`: Continue playing past 2048
+- `R`: Restart | `Q`: Quit
+
+### Minesweeper (`games/minesweeper/minesweeper.exe`)
+- `Arrows` / `WASD` / `HJKL`: Move cursor
+- `Space` / `Enter`: Reveal cell (first-click safe)
+- `F`: Toggle flag
+- `C`: Chord reveal around completed number
+- `1` / `2` / `3`: Switch difficulty (Beginner, Intermediate, Expert)
+- `R`: Restart | `Q`: Quit

@@ -1,47 +1,133 @@
+#include <conio.h>
+#include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
-#include "game.h"
-#include "input.h"
-#include "platform.h"
-#include "render.h"
+#include <windows.h>
 
-int main(void) {
-  srand((unsigned int)time(NULL));
+#define COLOR_RESET "\033[0m"
+#define COLOR_BORDER "\033[38;2;80;120;175m"
+#define COLOR_TITLE "\033[1;38;2;255;255;255m"
+#define COLOR_SEL "\033[1;38;2;255;220;50;48;2;45;65;95m"
+#define COLOR_DIM "\033[38;2;140;150;170m"
+#define COLOR_ACCENT "\033[1;38;2;0;220;210m"
 
-  platform_init();
-  render_init();
+typedef struct {
+  const char *title;
+  const char *desc;
+  const char *executable_path;
+} GameEntry;
 
-  GameState game;
-  game_init(&game);
+static const GameEntry GAMES[] = {
+  {
+    "Tetris CLI",
+    "Classic Guideline Tetris with SRS, ghost piece & 7-bag",
+    "games\\tetris\\tetris.exe"
+  },
+  {
+    "2048 CLI",
+    "4x4 slide & merge puzzle with 32-step undo history",
+    "games\\2048\\2048.exe"
+  },
+  {
+    "Minesweeper CLI",
+    "Minefield sweeper with first-click safety, chords & timer",
+    "games\\minesweeper\\minesweeper.exe"
+  }
+};
 
-  const int target_frame_ms = 16; // ~60 FPS
+static const int GAME_COUNT = sizeof(GAMES) / sizeof(GAMES[0]);
 
-  while (game.state != STATE_EXIT) {
-    unsigned long long frame_start = platform_get_time_ms();
+static void setup_console(void) {
+  HANDLE h_out = GetStdHandle(STD_OUTPUT_HANDLE);
+  if (h_out != INVALID_HANDLE_VALUE) {
+    DWORD mode = 0;
+    GetConsoleMode(h_out, &mode);
+    SetConsoleMode(h_out, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING | ENABLE_PROCESSED_OUTPUT);
+  }
+  SetConsoleOutputCP(CP_UTF8);
+}
 
-    // Consume all pending inputs for low latency responsiveness
-    GameAction action;
-    while ((action = input_get_action()) != ACT_NONE) {
-      game_handle_action(&game, action, frame_start);
-      if (game.state == STATE_EXIT) {
-        break;
-      }
-    }
+static void draw_menu(int selected) {
+  printf("\033[2J\033[H");
 
-    if (game.state != STATE_EXIT) {
-      game_update(&game, frame_start);
-      render_frame(&game);
-    }
+  printf(
+    "  %s╔═══════════════════════════════════════════════════════════════╗%s\n"
+    "  %s║%s              %sT E R M I N A L   A R C A D E   ( C )%s              %s║%s\n"
+    "  %s╚═══════════════════════════════════════════════════════════════╝%s\n\n",
+    COLOR_BORDER, COLOR_RESET,
+    COLOR_BORDER, COLOR_RESET, COLOR_TITLE, COLOR_RESET, COLOR_BORDER, COLOR_RESET,
+    COLOR_BORDER, COLOR_RESET
+  );
 
-    unsigned long long frame_end = platform_get_time_ms();
-    int elapsed = (int)(frame_end - frame_start);
-    if (elapsed < target_frame_ms) {
-      platform_sleep_ms(target_frame_ms - elapsed);
+  printf("  %sChoose a game to play:%s\n\n", COLOR_ACCENT, COLOR_RESET);
+
+  for (int i = 0; i < GAME_COUNT; i++) {
+    if (i == selected) {
+      printf("    %s > [%d] %-16s %-42s %s\n", COLOR_SEL, i + 1, GAMES[i].title, GAMES[i].desc, COLOR_RESET);
+    } else {
+      printf("      [%d] \033[1;37m%-16s\033[0m %s%-42s%s\n", i + 1, GAMES[i].title, COLOR_DIM, GAMES[i].desc, COLOR_RESET);
     }
   }
 
-  render_cleanup();
-  platform_cleanup();
+  printf("\n      [Q] \033[1;37mQuit Arcade\033[0m\n\n");
+  printf("  %sControls:%s\n", COLOR_BORDER, COLOR_RESET);
+  printf("    %s[↑ / ↓ / W / S]%s Navigate    %s[Enter / Space]%s Launch Game\n", COLOR_DIM, COLOR_RESET, COLOR_DIM, COLOR_RESET);
+  printf("    %s[1 - %d]%s        Quick Select %s[Q]%s             Exit\n", COLOR_DIM, GAME_COUNT, COLOR_RESET, COLOR_DIM, COLOR_RESET);
+  fflush(stdout);
+}
+
+static void launch_game(const char *exe_path) {
+  // Check if executable exists
+  FILE *f = fopen(exe_path, "rb");
+  if (!f) {
+    printf("\n  \033[1;31mGame not built yet (%s). Build with 'make' first!\033[0m\n", exe_path);
+    printf("  Press any key to return...");
+    fflush(stdout);
+    _getch();
+    return;
+  }
+  fclose(f);
+
+  system(exe_path);
+}
+
+int main(void) {
+  setup_console();
+
+  int selected = 0;
+
+  while (true) {
+    draw_menu(selected);
+
+    int ch = _getch();
+
+    if (ch == 0 || ch == 224) {
+      int ext = _getch();
+      if (ext == 72) { // Up
+        selected = (selected - 1 + GAME_COUNT) % GAME_COUNT;
+      } else if (ext == 80) { // Down
+        selected = (selected + 1) % GAME_COUNT;
+      }
+      continue;
+    }
+
+    if (ch == 'w' || ch == 'W') {
+      selected = (selected - 1 + GAME_COUNT) % GAME_COUNT;
+    } else if (ch == 's' || ch == 'S') {
+      selected = (selected + 1) % GAME_COUNT;
+    } else if (ch >= '1' && ch < '1' + GAME_COUNT) {
+      selected = ch - '1';
+      launch_game(GAMES[selected].executable_path);
+    } else if (ch == '\r' || ch == '\n' || ch == ' ') {
+      launch_game(GAMES[selected].executable_path);
+    } else if (ch == 'q' || ch == 'Q' || ch == 27) {
+      break;
+    }
+  }
+
+  printf("\033[2J\033[H\033[0m");
+  printf("Thanks for playing Terminal Arcade!\n");
+  fflush(stdout);
 
   return 0;
 }
