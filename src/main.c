@@ -42,6 +42,11 @@ static const GameEntry GAMES[] = {
     "Space Invaders CLI",
     "Arcade shmup with marching swarms, bunkers & mystery UFO",
     "games\\invaders\\invaders.exe"
+  },
+  {
+    "Sudoku CLI",
+    "Logic number grid with notes, conflict check & inspector",
+    "games\\sudoku\\sudoku.exe"
   }
 };
 

@@ -33,10 +33,16 @@ terminal-arcade/
 │   │   ├── test_snake.c        # Unit test suite
 │   │   ├── Makefile            # Standalone build pipeline
 │   │   └── README.md           # Game guide
-│   └── invaders/               # Classic Space Invaders with bunkers & UFO
+│   ├── invaders/               # Classic Space Invaders with bunkers & UFO
+│   │   ├── include/            # config.h, game.h, input.h, platform.h, render.h
+│   │   ├── src/                # game.c, input.c, main.c, platform.c, render.c
+│   │   ├── test_invaders.c     # Unit test suite
+│   │   ├── Makefile            # Standalone build pipeline
+│   │   └── README.md           # Game guide
+│   └── sudoku/                 # Logic puzzle with notes, conflicts & inspector
 │       ├── include/            # config.h, game.h, input.h, platform.h, render.h
 │       ├── src/                # game.c, input.c, main.c, platform.c, render.c
-│       ├── test_invaders.c     # Unit test suite
+│       ├── test_sudoku.c       # Unit test suite
 │       ├── Makefile            # Standalone build pipeline
 │       └── README.md           # Game guide
 ├── Makefile                    # Master build & test pipeline
@@ -71,7 +77,7 @@ To add any new game (e.g. `breakout`, `pong`, `sokoban`):
   ```bash
   make
   ```
-  Produces `arcade.exe`, `games/tetris/tetris.exe`, `games/2048/2048.exe`, `games/minesweeper/minesweeper.exe`, `games/snake/snake.exe`, and `games/invaders/invaders.exe`.
+  Produces `arcade.exe`, `games/tetris/tetris.exe`, `games/2048/2048.exe`, `games/minesweeper/minesweeper.exe`, `games/snake/snake.exe`, `games/invaders/invaders.exe`, and `games/sudoku/sudoku.exe`.
 
 - **Run Full Automated Test Suite**:
   ```bash
@@ -86,6 +92,7 @@ To add any new game (e.g. `breakout`, `pong`, `sokoban`):
   make minesweeper
   make snake
   make invaders
+  make sudoku
   ```
 
 - **Clean Entire Workspace**:
@@ -100,7 +107,7 @@ To add any new game (e.g. `breakout`, `pong`, `sokoban`):
 ### Arcade Hub Launcher (`arcade.exe`)
 - `↑` / `↓` / `W` / `S`: Navigate game selection
 - `Enter` / `Space`: Launch selected game
-- `1` - `5`: Quick select and launch
+- `1` - `6`: Quick select and launch
 - `Q`: Quit arcade
 
 ### Tetris (`games/tetris/tetris.exe`)
@@ -138,3 +145,15 @@ To add any new game (e.g. `breakout`, `pong`, `sokoban`):
 - `Space` / `W` / `↑`: Fire Laser
 - `P` / `Esc`: Pause / resume
 - `R`: Restart | `Q`: Quit
+
+### Sudoku (`games/sudoku/sudoku.exe`)
+- `Arrows` / `WASD` / `HJKL`: Move cursor across 9x9 grid
+- `1` - `9`: Place digit / Toggle candidate note
+- `N`: Toggle Pencil Notes mode
+- `0` / `Backspace` / `Del` / `X`: Clear cell
+- `U` / `Z`: Undo move (up to 64 steps)
+- `H`: Hint (reveals correct cell value)
+- `E`: Toggle conflict checking
+- `Tab` / `M`: Cycle difficulty (Easy, Medium, Hard, Expert)
+- `P` / `Esc`: Pause / resume
+- `R`: New game / restart | `Q`: Quit

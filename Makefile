@@ -8,7 +8,7 @@ else
   CLEAN_CMD = rm -f $(LAUNCHER) src/main.o
 endif
 
-all: $(LAUNCHER) tetris 2048 minesweeper snake invaders
+all: $(LAUNCHER) tetris 2048 minesweeper snake invaders sudoku
 
 $(LAUNCHER): src/main.c
 	$(CC) $(CFLAGS) -o $@ $<
@@ -28,12 +28,16 @@ snake:
 invaders:
 	$(MAKE) -C games/invaders
 
+sudoku:
+	$(MAKE) -C games/sudoku
+
 test:
 	$(MAKE) -C games/tetris test
 	$(MAKE) -C games/2048 test
 	$(MAKE) -C games/minesweeper test
 	$(MAKE) -C games/snake test
 	$(MAKE) -C games/invaders test
+	$(MAKE) -C games/sudoku test
 
 clean:
 	$(CLEAN_CMD)
@@ -42,5 +46,6 @@ clean:
 	$(MAKE) -C games/minesweeper clean
 	$(MAKE) -C games/snake clean
 	$(MAKE) -C games/invaders clean
+	$(MAKE) -C games/sudoku clean
 
-.PHONY: all tetris 2048 minesweeper snake invaders test clean
+.PHONY: all tetris 2048 minesweeper snake invaders sudoku test clean

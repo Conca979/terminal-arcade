@@ -53,6 +53,14 @@ Classic arcade alien shooter featuring:
 - Alien bomb drops and mystery mothership (UFO) fly-bys
 - Multi-wave progression and persistent high score tracking
 
+### 6. 🧩 Sudoku CLI (`games/sudoku/`)
+Logic number puzzle featuring:
+- Procedural board generation with unique solutions across 4 difficulty levels
+- Candidate pencil notes mode (`N` key) for draft calculations
+- Side-by-side Cell Inspector panel with valid candidates and remaining digit counts
+- Crosshair and identical number highlights with real-time conflict checking
+- 64-step undo stack (`U`) and hint assistant (`H`)
+
 ---
 
 ## Quick Start
@@ -85,6 +93,7 @@ Or run any game standalone directly:
 .\games\minesweeper\minesweeper.exe
 .\games\snake\snake.exe
 .\games\invaders\invaders.exe
+.\games\sudoku\sudoku.exe
 ```
 
 ---
