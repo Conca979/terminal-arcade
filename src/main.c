@@ -32,6 +32,11 @@ static const GameEntry GAMES[] = {
     "Minesweeper CLI",
     "Minefield sweeper with first-click safety, chords & timer",
     "games\\minesweeper\\minesweeper.exe"
+  },
+  {
+    "Cyberpunk Snake",
+    "Neon light-cycle snake with power-ups, buffs & wrap mode",
+    "games\\snake\\snake.exe"
   }
 };
 

@@ -37,6 +37,14 @@ Full-featured minefield sweeper featuring:
 - 3 Difficulty presets: Beginner (9x9, 10 mines), Intermediate (16x16, 40 mines), Expert (30x16, 99 mines)
 - Live stopwatch timer & best time records
 
+### 4. 🐍 Cyberpunk Snake (`games/snake/`)
+Retro-futuristic light-cycle snake featuring:
+- Neon Synthwave gradient trail from electric cyan to hot magenta
+- **Cyber Food Chips**: Data Packets (`+10`), Timed Cyber Cores (`+50`), Overclock Chips (`2x` score), and Phase Shift (wall walk)
+- Smooth dynamic speed acceleration curve as snake grows
+- Dual arena navigation: Solid Lethal Walls vs. Toroidal Wrap-Around (`M` key)
+- Persistent high score tracking
+
 ---
 
 ## Quick Start
@@ -67,6 +75,7 @@ Or run any game standalone directly:
 .\games\tetris\tetris.exe
 .\games\2048\2048.exe
 .\games\minesweeper\minesweeper.exe
+.\games\snake\snake.exe
 ```
 
 ---
