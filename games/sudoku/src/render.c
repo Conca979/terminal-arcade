@@ -3,8 +3,8 @@
 #include <string.h>
 
 #define COLOR_RESET "\033[0m"
-#define COLOR_BOX_BORDER "\033[38;2;85;125;195m"
-#define COLOR_CELL_BORDER "\033[38;2;55;75;105m"
+#define COLOR_BOX_BORDER "\033[1;38;2;90;140;220m"
+#define COLOR_CELL_BORDER "\033[38;2;80;110;150m"
 #define COLOR_TITLE "\033[1;38;2;255;255;255m"
 #define COLOR_LABEL "\033[1;38;2;160;185;220m"
 #define COLOR_VALUE "\033[1;38;2;255;220;50m"
@@ -15,7 +15,7 @@
 // Cell formatting
 #define COLOR_GIVEN "\033[1;38;2;245;245;255m"
 #define COLOR_USER "\033[1;38;2;0;230;240m"
-#define COLOR_NOTE "\033[38;2;245;185;60m"
+#define COLOR_NOTE "\033[1;38;2;245;190;60m"
 
 // Highlights
 #define BG_CURSOR "\033[48;2;45;80;140;1;38;2;255;255;255m"
@@ -78,7 +78,6 @@ static void format_cell(
   } else {
     // Empty cell
     if (cell->notes != 0) {
-      // Show note indicator (e.g. ° or single note or dot)
       int note_count = 0;
       int first_note = 0;
       for (int n = 1; n <= 9; n++) {
@@ -90,7 +89,7 @@ static void format_cell(
       if (note_count == 1) {
         snprintf(out, out_sz, "%s%s'%d'%s", bg, COLOR_NOTE, first_note, COLOR_RESET);
       } else {
-        snprintf(out, out_sz, "%s%s · %s", bg, COLOR_NOTE, COLOR_RESET);
+        snprintf(out, out_sz, "%s%s * %s", bg, COLOR_NOTE, COLOR_RESET);
       }
     } else {
       if (bg[0] != '\0') {
@@ -102,18 +101,28 @@ static void format_cell(
   }
 }
 
+static void format_digit_stat(int digit, int rem, char *txt, size_t txt_sz, const char **col) {
+  if (rem == 0) {
+    snprintf(txt, txt_sz, "%d: DONE  ", digit);
+    *col = COLOR_DONE;
+  } else {
+    snprintf(txt, txt_sz, "%d: %d left", digit, rem);
+    *col = COLOR_VALUE;
+  }
+}
+
 void render_frame(const GameState *game, unsigned long long current_time) {
   static char buffer[32768];
   int offset = 0;
 
   offset += snprintf(buffer + offset, sizeof(buffer) - offset, "\033[H");
 
-  // Title Banner
+  // Title Banner - exactly 76 characters wide (matching board + sidebar width)
   offset += snprintf(
     buffer + offset, sizeof(buffer) - offset,
-    "  %s╔═══════════════════════════════════════════════════════════════════════════╗%s\n"
-    "  %s║%s                      %sS U D O K U   A R C A D E%s                        %s║%s\n"
-    "  %s╚═══════════════════════════════════════════════════════════════════════════╝%s\n",
+    "  %s╔══════════════════════════════════════════════════════════════════════════╗%s\n"
+    "  %s║%s                        %sS U D O K U   A R C A D E%s                         %s║%s\n"
+    "  %s╚══════════════════════════════════════════════════════════════════════════╝%s\n",
     COLOR_BOX_BORDER, COLOR_RESET,
     COLOR_BOX_BORDER, COLOR_RESET, COLOR_TITLE, COLOR_RESET, COLOR_BOX_BORDER, COLOR_RESET,
     COLOR_BOX_BORDER, COLOR_RESET
@@ -148,29 +157,31 @@ void render_frame(const GameState *game, unsigned long long current_time) {
   uint16_t candidates = game_get_valid_candidates(game, game->cursor_r, game->cursor_c);
   bool is_cur_given = game->grid[game->cursor_r][game->cursor_c].is_given;
 
-  // Prepare sidebar lines
-  char side[25][256];
-  for (int i = 0; i < 25; i++) {
-    side[i][0] = '\0';
-  }
+  // Prepare exactly 19 sidebar lines, each with exactly 34 columns of inside content
+  char side[19][256];
 
-  snprintf(side[0], sizeof(side[0]), "%s┌── CELL INSPECTOR ─────────────────┐%s", COLOR_BOX_BORDER, COLOR_RESET);
-  snprintf(side[1], sizeof(side[1]), "%s│%s Pos:  Row %d, Col %d                %s│%s",
+  // Line 0: Inspector Header
+  snprintf(side[0], sizeof(side[0]), "%s┌── CELL INSPECTOR ────────────────┐%s", COLOR_BOX_BORDER, COLOR_RESET);
+
+  // Line 1: Coordinates (1 + 20 + 13 = 34 cols)
+  snprintf(side[1], sizeof(side[1]), "%s│%s Pos:   Row %d, Col %d              %s│%s",
            COLOR_BOX_BORDER, COLOR_RESET, game->cursor_r + 1, game->cursor_c + 1, COLOR_BOX_BORDER, COLOR_RESET);
 
+  // Line 2: Value status (34 cols inside)
   if (sel_val > 0) {
-    snprintf(side[2], sizeof(side[2]), "%s│%s Val:  %s%d%s %-20s  %s│%s",
-             COLOR_BOX_BORDER, COLOR_RESET,
-             is_cur_given ? COLOR_GIVEN : COLOR_USER,
-             sel_val, COLOR_RESET,
-             is_cur_given ? "[GIVEN CLUE]" : "[USER VALUE]",
-             COLOR_BOX_BORDER, COLOR_RESET);
+    if (is_cur_given) {
+      snprintf(side[2], sizeof(side[2]), "%s│%s Val:   %s%d [GIVEN CLUE]%s            %s│%s",
+               COLOR_BOX_BORDER, COLOR_RESET, COLOR_GIVEN, sel_val, COLOR_RESET, COLOR_BOX_BORDER, COLOR_RESET);
+    } else {
+      snprintf(side[2], sizeof(side[2]), "%s│%s Val:   %s%d [USER VALUE]%s            %s│%s",
+               COLOR_BOX_BORDER, COLOR_RESET, COLOR_USER, sel_val, COLOR_RESET, COLOR_BOX_BORDER, COLOR_RESET);
+    }
   } else {
-    snprintf(side[2], sizeof(side[2]), "%s│%s Val:  \033[38;2;120;130;140m(Empty)\033[0m                   %s│%s",
+    snprintf(side[2], sizeof(side[2]), "%s│%s Val:   \033[38;2;120;130;140m(Empty)\033[0m                    %s│%s",
              COLOR_BOX_BORDER, COLOR_RESET, COLOR_BOX_BORDER, COLOR_RESET);
   }
 
-  // Notes line
+  // Line 3: Candidate Notes (8 + 24 + 2 = 34 cols inside)
   char notes_buf[32] = "";
   int nb_len = 0;
   for (int n = 1; n <= 9; n++) {
@@ -179,71 +190,76 @@ void render_frame(const GameState *game, unsigned long long current_time) {
     }
   }
   if (nb_len == 0) snprintf(notes_buf, sizeof(notes_buf), "None");
-  snprintf(side[3], sizeof(side[3]), "%s│%s Notes: %-23s  %s│%s",
-           COLOR_BOX_BORDER, COLOR_RESET, notes_buf, COLOR_BOX_BORDER, COLOR_RESET);
+  snprintf(side[3], sizeof(side[3]), "%s│%s Notes: %s%-24s%s  %s│%s",
+           COLOR_BOX_BORDER, COLOR_RESET, COLOR_NOTE, notes_buf, COLOR_RESET, COLOR_BOX_BORDER, COLOR_RESET);
 
-  // Candidates line
-  char cand_buf[48] = "";
+  // Line 4: Valid Candidates (8 + 24 + 2 = 34 cols inside)
+  char cand_buf[32] = "";
   int cb_len = 0;
   if (sel_val == 0) {
     for (int n = 1; n <= 9; n++) {
       if (candidates & (1 << n)) {
-        cb_len += snprintf(cand_buf + cb_len, sizeof(cand_buf) - cb_len, "%d", n);
-      } else {
-        cb_len += snprintf(cand_buf + cb_len, sizeof(cand_buf) - cb_len, "·");
+        cb_len += snprintf(cand_buf + cb_len, sizeof(cand_buf) - cb_len, "%d ", n);
       }
     }
+    if (cb_len == 0) snprintf(cand_buf, sizeof(cand_buf), "None (Conflict!)");
   } else {
-    snprintf(cand_buf, sizeof(cand_buf), "Cell filled");
+    snprintf(cand_buf, sizeof(cand_buf), "(Cell is filled)");
   }
-  snprintf(side[4], sizeof(side[4]), "%s│%s Valid: %-23s  %s│%s",
+  snprintf(side[4], sizeof(side[4]), "%s│%s Cand:  \033[1;36m%-24s\033[0m  %s│%s",
            COLOR_BOX_BORDER, COLOR_RESET, cand_buf, COLOR_BOX_BORDER, COLOR_RESET);
 
-  snprintf(side[5], sizeof(side[5]), "%s├── REMAINING DIGITS ───────────────┤%s", COLOR_BOX_BORDER, COLOR_RESET);
+  // Line 5: Remaining Digits Section Divider
+  snprintf(side[5], sizeof(side[5]), "%s├── REMAINING DIGITS ──────────────┤%s", COLOR_BOX_BORDER, COLOR_RESET);
 
-  for (int pair = 0; pair < 5; pair++) {
-    int d1 = pair * 2 + 1;
-    int d2 = pair * 2 + 2;
+  // Lines 6, 7, 8: Digits 1..9 (2 + 9 + 2 + 9 + 2 + 9 + 1 = 34 cols inside)
+  for (int row = 0; row < 3; row++) {
+    int d1 = row * 3 + 1;
+    int d2 = row * 3 + 2;
+    int d3 = row * 3 + 3;
 
-    char p1[32], p2[32];
-    if (game->remaining_counts[d1] == 0) {
-      snprintf(p1, sizeof(p1), "%d: %sDONE%s", d1, COLOR_DONE, COLOR_RESET);
-    } else {
-      snprintf(p1, sizeof(p1), "%d: %d left", d1, game->remaining_counts[d1]);
-    }
+    char t1[16], t2[16], t3[16];
+    const char *c1;
+    const char *c2;
+    const char *c3;
 
-    if (d2 <= 9) {
-      if (game->remaining_counts[d2] == 0) {
-        snprintf(p2, sizeof(p2), "%d: %sDONE%s", d2, COLOR_DONE, COLOR_RESET);
-      } else {
-        snprintf(p2, sizeof(p2), "%d: %d left", d2, game->remaining_counts[d2]);
-      }
-    } else {
-      p2[0] = '\0';
-    }
+    format_digit_stat(d1, game->remaining_counts[d1], t1, sizeof(t1), &c1);
+    format_digit_stat(d2, game->remaining_counts[d2], t2, sizeof(t2), &c2);
+    format_digit_stat(d3, game->remaining_counts[d3], t3, sizeof(t3), &c3);
 
-    snprintf(side[6 + pair], sizeof(side[6 + pair]), "%s│%s  %-12s   %-12s   %s│%s",
-             COLOR_BOX_BORDER, COLOR_RESET, p1, p2, COLOR_BOX_BORDER, COLOR_RESET);
+    snprintf(side[6 + row], sizeof(side[6 + row]),
+             "%s│%s  %s%s%s  %s%s%s  %s%s%s %s│%s",
+             COLOR_BOX_BORDER, COLOR_RESET,
+             c1, t1, COLOR_RESET,
+             c2, t2, COLOR_RESET,
+             c3, t3, COLOR_RESET,
+             COLOR_BOX_BORDER, COLOR_RESET);
   }
 
-  snprintf(side[11], sizeof(side[11]), "%s├── CONTROLS ───────────────────────┤%s", COLOR_BOX_BORDER, COLOR_RESET);
-  snprintf(side[12], sizeof(side[12]), "%s│%s  Arrows / WASD : Navigate Grid   %s│%s", COLOR_BOX_BORDER, COLOR_RESET, COLOR_BOX_BORDER, COLOR_RESET);
-  snprintf(side[13], sizeof(side[13]), "%s│%s  1 - 9         : Place / Note    %s│%s", COLOR_BOX_BORDER, COLOR_RESET, COLOR_BOX_BORDER, COLOR_RESET);
-  snprintf(side[14], sizeof(side[14]), "%s│%s  N             : Note Pencil Mode%s│%s", COLOR_BOX_BORDER, COLOR_RESET, COLOR_BOX_BORDER, COLOR_RESET);
-  snprintf(side[15], sizeof(side[15]), "%s│%s  0 / Backspace : Clear Cell      %s│%s", COLOR_BOX_BORDER, COLOR_RESET, COLOR_BOX_BORDER, COLOR_RESET);
-  snprintf(side[16], sizeof(side[16]), "%s│%s  U             : Undo Move       %s│%s", COLOR_BOX_BORDER, COLOR_RESET, COLOR_BOX_BORDER, COLOR_RESET);
-  snprintf(side[17], sizeof(side[17]), "%s│%s  H             : Hint (%d used)   %s│%s", COLOR_BOX_BORDER, COLOR_RESET, game->hints_used, COLOR_BOX_BORDER, COLOR_RESET);
-  snprintf(side[18], sizeof(side[18]), "%s│%s  E             : Conflict Check  %s│%s", COLOR_BOX_BORDER, COLOR_RESET, COLOR_BOX_BORDER, COLOR_RESET);
-  snprintf(side[19], sizeof(side[19]), "%s│%s  Tab / M       : Change Diff     %s│%s", COLOR_BOX_BORDER, COLOR_RESET, COLOR_BOX_BORDER, COLOR_RESET);
-  snprintf(side[20], sizeof(side[20]), "%s│%s  P / Esc       : Pause           %s│%s", COLOR_BOX_BORDER, COLOR_RESET, COLOR_BOX_BORDER, COLOR_RESET);
-  snprintf(side[21], sizeof(side[21]), "%s│%s  R             : New Game        %s│%s", COLOR_BOX_BORDER, COLOR_RESET, COLOR_BOX_BORDER, COLOR_RESET);
-  snprintf(side[22], sizeof(side[22]), "%s│%s  Q             : Quit to Arcade  %s│%s", COLOR_BOX_BORDER, COLOR_RESET, COLOR_BOX_BORDER, COLOR_RESET);
-  snprintf(side[23], sizeof(side[23]), "%s└───────────────────────────────────┘%s", COLOR_BOX_BORDER, COLOR_RESET);
+  // Line 9: Controls Section Divider
+  snprintf(side[9], sizeof(side[9]), "%s├── CONTROLS ──────────────────────┤%s", COLOR_BOX_BORDER, COLOR_RESET);
 
-  // Now render Board side-by-side with Sidebar
+  // Lines 10-17: Keybindings (exactly 34 cols inside each)
+  snprintf(side[10], sizeof(side[10]), "%s│%s  Arrows / WASD : Navigate Grid   %s│%s", COLOR_BOX_BORDER, COLOR_RESET, COLOR_BOX_BORDER, COLOR_RESET);
+  snprintf(side[11], sizeof(side[11]), "%s│%s  1 - 9         : Number / Note   %s│%s", COLOR_BOX_BORDER, COLOR_RESET, COLOR_BOX_BORDER, COLOR_RESET);
+  snprintf(side[12], sizeof(side[12]), "%s│%s  N             : Note Pencil Mode%s│%s", COLOR_BOX_BORDER, COLOR_RESET, COLOR_BOX_BORDER, COLOR_RESET);
+  snprintf(side[13], sizeof(side[13]), "%s│%s  0 / Backspace : Clear Cell      %s│%s", COLOR_BOX_BORDER, COLOR_RESET, COLOR_BOX_BORDER, COLOR_RESET);
+  snprintf(side[14], sizeof(side[14]), "%s│%s  U / Z         : Undo Move       %s│%s", COLOR_BOX_BORDER, COLOR_RESET, COLOR_BOX_BORDER, COLOR_RESET);
+
+  char hint_buf[35];
+  snprintf(hint_buf, sizeof(hint_buf), "  H             : Hint (%d used)", game->hints_used);
+  snprintf(side[15], sizeof(side[15]), "%s│%s%-34s%s│%s", COLOR_BOX_BORDER, COLOR_RESET, hint_buf, COLOR_BOX_BORDER, COLOR_RESET);
+
+  snprintf(side[16], sizeof(side[16]), "%s│%s  E             : Conflict Check  %s│%s", COLOR_BOX_BORDER, COLOR_RESET, COLOR_BOX_BORDER, COLOR_RESET);
+  snprintf(side[17], sizeof(side[17]), "%s│%s  Tab: Diff  P: Pause  Q: Quit    %s│%s", COLOR_BOX_BORDER, COLOR_RESET, COLOR_BOX_BORDER, COLOR_RESET);
+
+  // Line 18: Sidebar Bottom Border
+  snprintf(side[18], sizeof(side[18]), "%s└──────────────────────────────────┘%s", COLOR_BOX_BORDER, COLOR_RESET);
+
+  // Render 19 lines of Board side-by-side with 19 lines of Sidebar
   int side_idx = 0;
 
-  // Board Top Border
+  // Board Top Border (Line 0)
   offset += snprintf(
     buffer + offset, sizeof(buffer) - offset,
     "  %s╔═══╤═══╤═══╦═══╤═══╤═══╦═══╤═══╤═══╗%s   %s\n",
@@ -259,53 +275,44 @@ void render_frame(const GameState *game, unsigned long long current_time) {
       format_cell(game, r, c, sel_val, cell_str, sizeof(cell_str));
       offset += snprintf(buffer + offset, sizeof(buffer) - offset, "%s", cell_str);
 
-      if (c == 2 || c == 5) {
-        offset += snprintf(buffer + offset, sizeof(buffer) - offset, "%s║%s", COLOR_BOX_BORDER, COLOR_RESET);
-      } else if (c == 8) {
+      if (c == 2 || c == 5 || c == 8) {
         offset += snprintf(buffer + offset, sizeof(buffer) - offset, "%s║%s", COLOR_BOX_BORDER, COLOR_RESET);
       } else {
         offset += snprintf(buffer + offset, sizeof(buffer) - offset, "%s│%s", COLOR_CELL_BORDER, COLOR_RESET);
       }
     }
 
-    // Append sidebar line
-    const char *s_line = (side_idx < 25) ? side[side_idx++] : "";
-    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "   %s\n", s_line);
+    // Append corresponding sidebar line
+    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "   %s\n", side[side_idx++]);
 
-    // Row divider
+    // Row divider after row r (except after row 8)
     if (r == 2 || r == 5) {
-      const char *sd = (side_idx < 25) ? side[side_idx++] : "";
+      // 3x3 block horizontal boundary
       offset += snprintf(
         buffer + offset, sizeof(buffer) - offset,
         "  %s╠═══╪═══╪═══╬═══╪═══╪═══╬═══╪═══╪═══╣%s   %s\n",
-        COLOR_BOX_BORDER, COLOR_RESET, sd
+        COLOR_BOX_BORDER, COLOR_RESET, side[side_idx++]
       );
     } else if (r != 8) {
-      const char *sd = (side_idx < 25) ? side[side_idx++] : "";
+      // Inner cell horizontal divider
       offset += snprintf(
         buffer + offset, sizeof(buffer) - offset,
-        "  %s╟%s───%s┼%s───%s┼%s───%s╫%s───%s┼%s───%s┼%s───%s╫%s───%s┼%s───%s┼%s───%s╢%s   %s\n",
-        COLOR_BOX_BORDER, COLOR_CELL_BORDER, COLOR_CELL_BORDER, COLOR_CELL_BORDER,
-        COLOR_CELL_BORDER, COLOR_CELL_BORDER, COLOR_BOX_BORDER, COLOR_CELL_BORDER,
-        COLOR_CELL_BORDER, COLOR_CELL_BORDER, COLOR_CELL_BORDER, COLOR_CELL_BORDER,
-        COLOR_BOX_BORDER, COLOR_CELL_BORDER, COLOR_CELL_BORDER, COLOR_CELL_BORDER,
-        COLOR_CELL_BORDER, COLOR_CELL_BORDER, COLOR_BOX_BORDER, COLOR_RESET, sd
+        "  %s╟%s───┼───┼───%s╫%s───┼───┼───%s╫%s───┼───┼───%s╢%s   %s\n",
+        COLOR_BOX_BORDER, COLOR_CELL_BORDER,
+        COLOR_BOX_BORDER, COLOR_CELL_BORDER,
+        COLOR_BOX_BORDER, COLOR_CELL_BORDER,
+        COLOR_BOX_BORDER, COLOR_RESET,
+        side[side_idx++]
       );
     }
   }
 
-  // Board Bottom Border
-  const char *sd_bottom = (side_idx < 25) ? side[side_idx++] : "";
+  // Board Bottom Border (Line 18)
   offset += snprintf(
     buffer + offset, sizeof(buffer) - offset,
     "  %s╚═══╧═══╧═══╩═══╧═══╧═══╩═══╧═══╧═══╝%s   %s\n",
-    COLOR_BOX_BORDER, COLOR_RESET, sd_bottom
+    COLOR_BOX_BORDER, COLOR_RESET, side[side_idx++]
   );
-
-  // Remaining sidebar lines if any
-  while (side_idx < 24) {
-    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "                                              %s\n", side[side_idx++]);
-  }
 
   // Overlays for Victory and Pause
   if (game->state == STATE_VICTORY) {
