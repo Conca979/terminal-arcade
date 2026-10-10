@@ -28,7 +28,14 @@ test: $(TEST_TARGET)
 $(TEST_TARGET): $(TEST_SRCS)
 	$(CC) $(CFLAGS) -o $@ $^
 
+2048:
+	$(MAKE) -C games/2048
+
+test-all: test
+	$(MAKE) -C games/2048 test
+
 clean:
 	$(CLEAN_CMD)
+	$(MAKE) -C games/2048 clean
 
-.PHONY: all test clean
+.PHONY: all test 2048 test-all clean

@@ -102,23 +102,42 @@ make test
 
 ```
 tetris-terminal/
+├── games/
+│   └── 2048/              # 2048 Terminal Edition (C99/C11)
+│       ├── include/       # Headers (config, game, input, platform, render)
+│       ├── src/           # Implementation (sliding logic, undo, ANSI UI)
+│       ├── test_2048.c    # Unit tests for 2048
+│       ├── Makefile       # 2048 build pipeline
+│       └── README.md      # 2048 guide and controls
 ├── include/
-│   ├── config.h       # Game constants, types, states, and controls
-│   ├── game.h         # Game logic, state definitions, and SRS declarations
-│   ├── input.h        # Non-blocking console input interface
-│   ├── platform.h     # Windows console and timer abstractions
-│   └── render.h       # Double-buffered ANSI renderer interface
+│   ├── config.h           # Tetris constants, types, and controls
+│   ├── game.h             # Tetris mechanics, SRS, bag randomizer
+│   ├── input.h            # Non-blocking console input interface
+│   ├── platform.h         # Windows console and timer abstractions
+│   └── render.h           # Double-buffered ANSI renderer interface
 ├── src/
-│   ├── game.c         # SRS kicks, 7-bag generator, lock delay, collision
-│   ├── input.c        # Keyboard event handler
-│   ├── main.c         # 60 FPS pacing game loop
-│   ├── platform.c     # Win32 console modes, UTF-8, and signal handlers
-│   └── render.c       # Playfield, ghost piece, overlays, and color formatting
-├── test_tetris.c      # Unit test runner
-├── Makefile           # Build and test pipeline
-├── AGENTS.md          # Architecture and module documentation
-└── README.md          # Project overview and setup instructions
+│   ├── game.c             # SRS kicks, lock delay, collision
+│   ├── input.c            # Keyboard event handler
+│   ├── main.c             # 60 FPS pacing game loop
+│   ├── platform.c         # Win32 console modes and signal handlers
+│   └── render.c           # Playfield, ghost piece, overlays
+├── test_tetris.c          # Tetris unit test runner
+├── Makefile               # Tetris build and test pipeline
+├── AGENTS.md              # Architecture and module documentation
+└── README.md              # Project overview and setup instructions
 ```
+
+---
+
+## Arcade Collection
+
+Looking for more games? Check out **2048 CLI** located in `games/2048`:
+```bash
+cd games/2048
+make
+.\2048.exe
+```
+Features 32-step undo (`U`), custom ANSI tile palettes, and high score tracking!
 
 ---
 
