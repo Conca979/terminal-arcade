@@ -1,0 +1,43 @@
+#ifndef CONFIG_INVADERS_H
+#define CONFIG_INVADERS_H
+
+#include <stdbool.h>
+
+#define FIELD_WIDTH 48
+#define FIELD_HEIGHT 24
+
+#define ALIEN_ROWS 4
+#define ALIEN_COLS 8
+#define TOTAL_ALIENS (ALIEN_ROWS * ALIEN_COLS)
+
+#define MAX_PLAYER_BULLETS 4
+#define MAX_ALIEN_BOMBS 8
+#define BUNKER_COUNT 4
+#define BUNKER_PARTS 4
+#define BUNKER_MAX_HP 3
+#define MAX_EXPLOSIONS 12
+
+#define PLAYER_START_LIVES 3
+#define UFO_SPAWN_INTERVAL_MS 22000
+#define HIGH_SCORE_FILE "invaders_highscore.txt"
+
+typedef enum {
+  STATE_READY,
+  STATE_PLAYING,
+  STATE_PAUSED,
+  STATE_WAVE_CLEAR,
+  STATE_GAME_OVER,
+  STATE_EXIT
+} PlayState;
+
+typedef enum {
+  ACT_NONE = 0,
+  ACT_LEFT,
+  ACT_RIGHT,
+  ACT_FIRE,
+  ACT_PAUSE,
+  ACT_RESTART,
+  ACT_QUIT
+} GameAction;
+
+#endif /* CONFIG_INVADERS_H */

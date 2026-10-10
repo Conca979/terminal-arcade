@@ -27,10 +27,16 @@ terminal-arcade/
 │   │   ├── test_minesweeper.c  # Unit test suite
 │   │   ├── Makefile            # Standalone build pipeline
 │   │   └── README.md           # Game guide
-│   └── snake/                  # Cyberpunk light-cycle snake with power-ups & buffs
+│   ├── snake/                  # Cyberpunk light-cycle snake with power-ups & buffs
+│   │   ├── include/            # config.h, game.h, input.h, platform.h, render.h
+│   │   ├── src/                # game.c, input.c, main.c, platform.c, render.c
+│   │   ├── test_snake.c        # Unit test suite
+│   │   ├── Makefile            # Standalone build pipeline
+│   │   └── README.md           # Game guide
+│   └── invaders/               # Classic Space Invaders with bunkers & UFO
 │       ├── include/            # config.h, game.h, input.h, platform.h, render.h
 │       ├── src/                # game.c, input.c, main.c, platform.c, render.c
-│       ├── test_snake.c        # Unit test suite
+│       ├── test_invaders.c     # Unit test suite
 │       ├── Makefile            # Standalone build pipeline
 │       └── README.md           # Game guide
 ├── Makefile                    # Master build & test pipeline
@@ -42,7 +48,7 @@ terminal-arcade/
 
 ## Adding a New Game to the Arcade (Extensibility Guide)
 
-To add any new game (e.g. `space-invaders`, `pong`, `sokoban`):
+To add any new game (e.g. `breakout`, `pong`, `sokoban`):
 
 1. **Create the Game Directory**:
    `games/<game_name>/` containing:
@@ -65,7 +71,7 @@ To add any new game (e.g. `space-invaders`, `pong`, `sokoban`):
   ```bash
   make
   ```
-  Produces `arcade.exe`, `games/tetris/tetris.exe`, `games/2048/2048.exe`, `games/minesweeper/minesweeper.exe`, and `games/snake/snake.exe`.
+  Produces `arcade.exe`, `games/tetris/tetris.exe`, `games/2048/2048.exe`, `games/minesweeper/minesweeper.exe`, `games/snake/snake.exe`, and `games/invaders/invaders.exe`.
 
 - **Run Full Automated Test Suite**:
   ```bash
@@ -79,6 +85,7 @@ To add any new game (e.g. `space-invaders`, `pong`, `sokoban`):
   make 2048
   make minesweeper
   make snake
+  make invaders
   ```
 
 - **Clean Entire Workspace**:
@@ -93,7 +100,7 @@ To add any new game (e.g. `space-invaders`, `pong`, `sokoban`):
 ### Arcade Hub Launcher (`arcade.exe`)
 - `↑` / `↓` / `W` / `S`: Navigate game selection
 - `Enter` / `Space`: Launch selected game
-- `1` - `4`: Quick select and launch
+- `1` - `5`: Quick select and launch
 - `Q`: Quit arcade
 
 ### Tetris (`games/tetris/tetris.exe`)
@@ -123,5 +130,11 @@ To add any new game (e.g. `space-invaders`, `pong`, `sokoban`):
 ### Cyberpunk Snake (`games/snake/snake.exe`)
 - `Arrows` / `WASD` / `HJKL`: Steer snake
 - `M`: Toggle Wrap Mode / Solid Walls
+- `P` / `Esc`: Pause / resume
+- `R`: Restart | `Q`: Quit
+
+### Space Invaders (`games/invaders/invaders.exe`)
+- `←` / `→` or `A` / `D`: Move Cannon
+- `Space` / `W` / `↑`: Fire Laser
 - `P` / `Esc`: Pause / resume
 - `R`: Restart | `Q`: Quit

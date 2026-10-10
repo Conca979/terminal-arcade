@@ -37,6 +37,11 @@ static const GameEntry GAMES[] = {
     "Cyberpunk Snake",
     "Neon light-cycle snake with power-ups, buffs & wrap mode",
     "games\\snake\\snake.exe"
+  },
+  {
+    "Space Invaders CLI",
+    "Arcade shmup with marching swarms, bunkers & mystery UFO",
+    "games\\invaders\\invaders.exe"
   }
 };
 

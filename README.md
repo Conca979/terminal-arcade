@@ -45,6 +45,14 @@ Retro-futuristic light-cycle snake featuring:
 - Dual arena navigation: Solid Lethal Walls vs. Toroidal Wrap-Around (`M` key)
 - Persistent high score tracking
 
+### 5. 👾 Space Invaders (`games/invaders/`)
+Classic arcade alien shooter featuring:
+- 32-alien marching swarm with 2-frame retro animations
+- Accelerating marching rhythm as the alien swarm thins out
+- 4 Destructible defense barricades / bunkers with erosion physics
+- Alien bomb drops and mystery mothership (UFO) fly-bys
+- Multi-wave progression and persistent high score tracking
+
 ---
 
 ## Quick Start
@@ -76,6 +84,7 @@ Or run any game standalone directly:
 .\games\2048\2048.exe
 .\games\minesweeper\minesweeper.exe
 .\games\snake\snake.exe
+.\games\invaders\invaders.exe
 ```
 
 ---
