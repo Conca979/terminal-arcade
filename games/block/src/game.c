@@ -8,51 +8,51 @@
 
 static const Shape SHAPES[] = {
   // 1x1 dot
-  {1, 1, 1, {{1}}, 1},
+  {1, 1, 1, {{1}}, 4}, // Yellow
 
   // 1x2, 2x1
-  {2, 1, 2, {{1, 1}}, 2},
-  {1, 2, 2, {{1}, {1}}, 2},
+  {2, 1, 2, {{1, 1}}, 1}, // Cyan
+  {1, 2, 2, {{1}, {1}}, 1}, // Cyan
 
   // 1x3, 3x1
-  {3, 1, 3, {{1, 1, 1}}, 3},
-  {1, 3, 3, {{1}, {1}, {1}}, 3},
+  {3, 1, 3, {{1, 1, 1}}, 2}, // Blue
+  {1, 3, 3, {{1}, {1}, {1}}, 2}, // Blue
 
   // 1x4, 4x1
-  {4, 1, 4, {{1, 1, 1, 1}}, 4},
-  {1, 4, 4, {{1}, {1}, {1}, {1}}, 4},
+  {4, 1, 4, {{1, 1, 1, 1}}, 1}, // Cyan
+  {1, 4, 4, {{1}, {1}, {1}, {1}}, 1}, // Cyan
 
   // 1x5, 5x1
-  {5, 1, 5, {{1, 1, 1, 1, 1}}, 5},
-  {1, 5, 5, {{1}, {1}, {1}, {1}, {1}}, 5},
+  {5, 1, 5, {{1, 1, 1, 1, 1}}, 1}, // Cyan
+  {1, 5, 5, {{1}, {1}, {1}, {1}, {1}}, 1}, // Cyan
 
   // 2x2 Square
-  {2, 2, 4, {{1, 1}, {1, 1}}, 2},
+  {2, 2, 4, {{1, 1}, {1, 1}}, 4}, // Yellow
 
   // 3x3 Square
-  {3, 3, 9, {{1, 1, 1}, {1, 1, 1}, {1, 1, 1}}, 3},
+  {3, 3, 9, {{1, 1, 1}, {1, 1, 1}, {1, 1, 1}}, 3}, // Orange
 
   // Small L-corners (2x2)
-  {2, 2, 3, {{1, 0}, {1, 1}}, 4},
-  {2, 2, 3, {{0, 1}, {1, 1}}, 4},
-  {2, 2, 3, {{1, 1}, {1, 0}}, 4},
-  {2, 2, 3, {{1, 1}, {0, 1}}, 4},
+  {2, 2, 3, {{1, 0}, {1, 1}}, 7}, // Red
+  {2, 2, 3, {{0, 1}, {1, 1}}, 7}, // Red
+  {2, 2, 3, {{1, 1}, {1, 0}}, 7}, // Red
+  {2, 2, 3, {{1, 1}, {0, 1}}, 7}, // Red
 
   // Big L-shapes (3x3)
-  {3, 3, 5, {{1, 0, 0}, {1, 0, 0}, {1, 1, 1}}, 5},
-  {3, 3, 5, {{0, 0, 1}, {0, 0, 1}, {1, 1, 1}}, 5},
-  {3, 3, 5, {{1, 1, 1}, {1, 0, 0}, {1, 0, 0}}, 5},
-  {3, 3, 5, {{1, 1, 1}, {0, 0, 1}, {0, 0, 1}}, 5},
+  {3, 3, 5, {{1, 0, 0}, {1, 0, 0}, {1, 1, 1}}, 3}, // Orange
+  {3, 3, 5, {{0, 0, 1}, {0, 0, 1}, {1, 1, 1}}, 3}, // Orange
+  {3, 3, 5, {{1, 1, 1}, {1, 0, 0}, {1, 0, 0}}, 3}, // Orange
+  {3, 3, 5, {{1, 1, 1}, {0, 0, 1}, {0, 0, 1}}, 3}, // Orange
 
   // T-shapes
-  {3, 2, 4, {{1, 1, 1}, {0, 1, 0}}, 1},
-  {3, 2, 4, {{0, 1, 0}, {1, 1, 1}}, 1},
-  {2, 3, 4, {{1, 0}, {1, 1}, {1, 0}}, 1},
-  {2, 3, 4, {{0, 1}, {1, 1}, {0, 1}}, 1},
+  {3, 2, 4, {{1, 1, 1}, {0, 1, 0}}, 6}, // Purple
+  {3, 2, 4, {{0, 1, 0}, {1, 1, 1}}, 6}, // Purple
+  {2, 3, 4, {{1, 0}, {1, 1}, {1, 0}}, 6}, // Purple
+  {2, 3, 4, {{0, 1}, {1, 1}, {0, 1}}, 6}, // Purple
 
   // 2x3 and 3x2 Blocks
-  {3, 2, 6, {{1, 1, 1}, {1, 1, 1}}, 2},
-  {2, 3, 6, {{1, 1}, {1, 1}, {1, 1}}, 2}
+  {3, 2, 6, {{1, 1, 1}, {1, 1, 1}}, 5}, // Green
+  {2, 3, 6, {{1, 1}, {1, 1}, {1, 1}}, 5}  // Green
 };
 
 static const int SHAPE_COUNT = sizeof(SHAPES) / sizeof(SHAPES[0]);
@@ -148,7 +148,7 @@ void game_deal_pieces(GameState *game) {
   for (int i = 0; i < MAX_PIECES_TRAY; i++) {
     int idx = rand() % SHAPE_COUNT;
     game->tray[i].shape = SHAPES[idx];
-    game->tray[i].shape.color_id = 1 + (rand() % 5);
+    game->tray[i].shape.color_id = SHAPES[idx].color_id;
     game->tray[i].available = true;
   }
 
@@ -441,14 +441,14 @@ void game_handle_action(GameState *game, GameAction action, int param1, int para
       int mx = param1;
       int my = param2;
 
-      // 1. Check if clicking on one of the 3 Piece Trays at bottom (rows 19..24)
-      // Tray 0: cols 2..18 | Tray 1: cols 21..37 | Tray 2: cols 40..56
-      if (my >= 19 && my <= 24) {
-        if (mx >= 2 && mx <= 18) {
+      // 1. Check if clicking on one of the 3 Piece Trays at bottom (rows 18..24)
+      // Tray 0: cols 2..17 | Tray 1: cols 21..36 | Tray 2: cols 40..55
+      if (my >= 18 && my <= 24) {
+        if (mx >= 2 && mx <= 17) {
           if (game->tray[0].available) game->selected_piece = 0;
-        } else if (mx >= 21 && mx <= 37) {
+        } else if (mx >= 21 && mx <= 36) {
           if (game->tray[1].available) game->selected_piece = 1;
-        } else if (mx >= 40 && mx <= 56) {
+        } else if (mx >= 40 && mx <= 55) {
           if (game->tray[2].available) game->selected_piece = 2;
         }
       }

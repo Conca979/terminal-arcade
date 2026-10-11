@@ -3,27 +3,29 @@
 #include <string.h>
 
 #define COLOR_RESET "\033[0m"
-#define COLOR_GRID_BORDER "\033[1;38;2;175;120;70m"
-#define COLOR_SIDE_BORDER "\033[38;2;120;90;65m"
-#define COLOR_TITLE "\033[1;38;2;255;245;220m"
-#define COLOR_LABEL "\033[1;38;2;190;160;130m"
-#define COLOR_VALUE "\033[1;38;2;255;215;60m"
+#define COLOR_GRID_BORDER "\033[38;2;75;110;160m"
+#define COLOR_SIDE_BORDER "\033[38;2;80;90;120m"
+#define COLOR_TITLE "\033[1;38;2;255;255;255m"
+#define COLOR_LABEL "\033[1;38;2;160;180;210m"
+#define COLOR_VALUE "\033[1;38;2;255;220;50m"
 #define COLOR_SEL "\033[1;38;2;0;235;245m"
-#define COLOR_EMPTY "\033[38;2;95;80;65m"
+#define COLOR_EMPTY "\033[38;2;55;55;70m"
 
-// Wooden block palettes
-static const char *WOOD_COLORS[6] = {
+#define GHOST_VALID "\033[1;38;2;80;235;120m[]\033[0m"
+#define GHOST_BLOCKED "\033[1;38;2;255;75;75m[]\033[0m"
+#define CELL_EMPTY "\033[38;2;60;60;75m ·\033[0m"
+
+// Vibrant block palettes matching Tetris
+static const char *BLOCK_COLORS[8] = {
   COLOR_RESET,
-  "\033[1;38;2;230;165;85m",  // 1: Oak
-  "\033[1;38;2;215;115;60m",  // 2: Cedar
-  "\033[1;38;2;180;80;50m",   // 3: Mahogany
-  "\033[1;38;2;245;195;95m",  // 4: Pine
-  "\033[1;38;2;255;210;45m"   // 5: Amber
+  "\033[38;2;0;235;235m",   // 1: Cyan
+  "\033[38;2;70;140;255m",  // 2: Blue
+  "\033[38;2;255;155;0m",   // 3: Orange
+  "\033[38;2;255;225;0m",   // 4: Yellow
+  "\033[38;2;50;215;50m",   // 5: Green
+  "\033[38;2;195;65;255m",  // 6: Purple
+  "\033[38;2;255;65;65m"    // 7: Red
 };
-
-// Ghost previews
-#define GHOST_VALID "\033[1;38;2;80;235;120;48;2;25;55;35m ▒ \033[0m"
-#define GHOST_BLOCKED "\033[1;38;2;255;75;75;48;2;65;25;25m ✕ \033[0m"
 
 void render_init(void) {
   printf("\033[2J\033[H");
@@ -42,12 +44,12 @@ void render_frame(const GameState *game, unsigned long long current_time) {
 
   offset += snprintf(buffer + offset, sizeof(buffer) - offset, "\033[H");
 
-  // Title Banner (73 cols wide)
+  // Title Banner (63 cols wide)
   offset += snprintf(
     buffer + offset, sizeof(buffer) - offset,
-    "  %s╔═════════════════════════════════════════════════════════════════════╗%s\033[K\n"
-    "  %s║%s                  %sW O O D   B L O C K   P U Z Z L E%s                  %s║%s\033[K\n"
-    "  %s╚═════════════════════════════════════════════════════════════════════╝%s\033[K\n",
+    "  %s╔═══════════════════════════════════════════════════════════╗%s\033[K\n"
+    "  %s║%s              %sC L A S S I C   B L O C K   P U Z Z L E%s              %s║%s\033[K\n"
+    "  %s╚═══════════════════════════════════════════════════════════╝%s\033[K\n",
     COLOR_GRID_BORDER, COLOR_RESET,
     COLOR_GRID_BORDER, COLOR_RESET, COLOR_TITLE, COLOR_RESET, COLOR_GRID_BORDER, COLOR_RESET,
     COLOR_GRID_BORDER, COLOR_RESET
@@ -68,7 +70,7 @@ void render_frame(const GameState *game, unsigned long long current_time) {
     COLOR_LABEL, COLOR_RESET
   );
 
-  // Prepare 12 Sidebar lines (each 34 cols inside)
+  // Prepare 12 Sidebar lines (each 34 cols inside, 36 total)
   char side[12][256];
 
   char streak_buf[32];
@@ -129,11 +131,11 @@ void render_frame(const GameState *game, unsigned long long current_time) {
     }
   }
 
-  // Render Grid Line 0 (Top border) side-by-side with Sidebar Line 0
+  // Render Grid Line 0 (Top border: 20 chars wide) side-by-side with Sidebar Line 0
   int side_idx = 0;
   offset += snprintf(
     buffer + offset, sizeof(buffer) - offset,
-    "  %s╔══════════════════════════════╗%s   %s\033[K\n",
+    "  %s╔════════════════════╗%s   %s\033[K\n",
     COLOR_GRID_BORDER, COLOR_RESET, side[side_idx++]
   );
 
@@ -150,11 +152,11 @@ void render_frame(const GameState *game, unsigned long long current_time) {
         }
       } else if (game->grid[r][c] > 0) {
         int color_idx = game->grid[r][c];
-        if (color_idx > 5) color_idx = 1;
-        offset += snprintf(buffer + offset, sizeof(buffer) - offset, "%s █ %s", WOOD_COLORS[color_idx], COLOR_RESET);
+        if (color_idx < 1 || color_idx > 7) color_idx = 1;
+        offset += snprintf(buffer + offset, sizeof(buffer) - offset, "%s██%s", BLOCK_COLORS[color_idx], COLOR_RESET);
       } else {
         // Empty cell
-        offset += snprintf(buffer + offset, sizeof(buffer) - offset, "%s · %s", COLOR_EMPTY, COLOR_RESET);
+        offset += snprintf(buffer + offset, sizeof(buffer) - offset, "%s", CELL_EMPTY);
       }
     }
 
@@ -166,7 +168,7 @@ void render_frame(const GameState *game, unsigned long long current_time) {
   const char *s_bottom = (side_idx < 12) ? side[side_idx++] : "";
   offset += snprintf(
     buffer + offset, sizeof(buffer) - offset,
-    "  %s╚══════════════════════════════╝%s   %s\033[K\n",
+    "  %s╚════════════════════╝%s   %s\033[K\n",
     COLOR_GRID_BORDER, COLOR_RESET, s_bottom
   );
 
@@ -182,8 +184,8 @@ void render_frame(const GameState *game, unsigned long long current_time) {
   }
 
   // Render the 3 Candidate Piece Trays below the grid
-  // Width of each box: 17 chars. Gaps: 3 chars.
-  // Box 0 (cols 2..18), Box 1 (cols 21..37), Box 2 (cols 40..56)
+  // Outer width of each box: 16 chars. Gaps: 3 chars.
+  // Box 0 (cols 2..17), Box 1 (cols 21..36), Box 2 (cols 40..55)
   char tray_top[3][64];
   char tray_bot[3][64];
   const char *tray_border_col[3];
@@ -191,12 +193,12 @@ void render_frame(const GameState *game, unsigned long long current_time) {
   for (int i = 0; i < MAX_PIECES_TRAY; i++) {
     if (game->selected_piece == i) {
       tray_border_col[i] = COLOR_SEL;
-      snprintf(tray_top[i], sizeof(tray_top[i]), "╔══ [%d] PIECE ══╗", i + 1);
-      snprintf(tray_bot[i], sizeof(tray_bot[i]), "╚════════════════╝");
+      snprintf(tray_top[i], sizeof(tray_top[i]), "╔═ [%d] PIECE ═╗", i + 1);
+      snprintf(tray_bot[i], sizeof(tray_bot[i]), "╚══════════════╝");
     } else {
       tray_border_col[i] = COLOR_SIDE_BORDER;
-      snprintf(tray_top[i], sizeof(tray_top[i]), "┌── [%d] PIECE ──┐", i + 1);
-      snprintf(tray_bot[i], sizeof(tray_bot[i]), "└────────────────┘");
+      snprintf(tray_top[i], sizeof(tray_top[i]), "┌─ [%d] PIECE ─┐", i + 1);
+      snprintf(tray_bot[i], sizeof(tray_bot[i]), "└──────────────┘");
     }
   }
 
@@ -209,7 +211,7 @@ void render_frame(const GameState *game, unsigned long long current_time) {
     tray_border_col[2], tray_top[2], COLOR_RESET
   );
 
-  // Tray Content Rows (5 rows for up to 5x5 polyomino shapes)
+  // Tray Content Rows (5 rows for up to 5x5 polyomino shapes, interior width = 14)
   for (int row = 0; row < MAX_SHAPE_DIM; row++) {
     offset += snprintf(buffer + offset, sizeof(buffer) - offset, "  ");
 
@@ -221,38 +223,39 @@ void render_frame(const GameState *game, unsigned long long current_time) {
 
       if (!tp->available) {
         if (row == 2) {
-          offset += snprintf(buffer + offset, sizeof(buffer) - offset, "\033[38;2;120;110;100m   [PLACED]    \033[0m");
+          offset += snprintf(buffer + offset, sizeof(buffer) - offset, "\033[38;2;120;110;100m   [PLACED]   \033[0m");
         } else {
-          offset += snprintf(buffer + offset, sizeof(buffer) - offset, "               ");
+          offset += snprintf(buffer + offset, sizeof(buffer) - offset, "              ");
         }
       } else {
         const Shape *s = &tp->shape;
         int color_idx = s->color_id;
-        if (color_idx > 5) color_idx = 1;
+        if (color_idx < 1 || color_idx > 7) color_idx = 1;
 
-        // Center the shape in the 15-character interior (5 columns of 3 chars = 15 chars)
-        int pad_left = (5 - s->w) / 2;
+        // Interior width = 14 characters. Each cell is 2 characters wide.
+        int shape_w_chars = s->w * 2;
+        int pad_left = (14 - shape_w_chars) / 2;
+        int pad_right = 14 - pad_left - shape_w_chars;
         int pad_top = (5 - s->h) / 2;
 
         int s_row = row - pad_top;
 
         if (s_row >= 0 && s_row < s->h) {
-          // Render row of shape
           for (int c = 0; c < pad_left; c++) {
-            offset += snprintf(buffer + offset, sizeof(buffer) - offset, "   ");
+            offset += snprintf(buffer + offset, sizeof(buffer) - offset, " ");
           }
           for (int c = 0; c < s->w; c++) {
             if (s->mask[s_row][c] == 1) {
-              offset += snprintf(buffer + offset, sizeof(buffer) - offset, "%s █ %s", WOOD_COLORS[color_idx], COLOR_RESET);
+              offset += snprintf(buffer + offset, sizeof(buffer) - offset, "%s██%s", BLOCK_COLORS[color_idx], COLOR_RESET);
             } else {
-              offset += snprintf(buffer + offset, sizeof(buffer) - offset, "   ");
+              offset += snprintf(buffer + offset, sizeof(buffer) - offset, "  ");
             }
           }
-          for (int c = pad_left + s->w; c < 5; c++) {
-            offset += snprintf(buffer + offset, sizeof(buffer) - offset, "   ");
+          for (int c = 0; c < pad_right; c++) {
+            offset += snprintf(buffer + offset, sizeof(buffer) - offset, " ");
           }
         } else {
-          offset += snprintf(buffer + offset, sizeof(buffer) - offset, "               ");
+          offset += snprintf(buffer + offset, sizeof(buffer) - offset, "              ");
         }
       }
 

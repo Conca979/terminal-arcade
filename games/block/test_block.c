@@ -30,7 +30,7 @@ static void test_initialization(void) {
     assert(game.tray[i].shape.w >= 1 && game.tray[i].shape.w <= MAX_SHAPE_DIM);
     assert(game.tray[i].shape.h >= 1 && game.tray[i].shape.h <= MAX_SHAPE_DIM);
     assert(game.tray[i].shape.block_count >= 1 && game.tray[i].shape.block_count <= 9);
-    assert(game.tray[i].shape.color_id >= 1 && game.tray[i].shape.color_id <= 5);
+    assert(game.tray[i].shape.color_id >= 1 && game.tray[i].shape.color_id <= 7);
   }
 
   printf("[PASS] test_initialization (10x10 empty grid, 3 valid tray pieces)\n");
