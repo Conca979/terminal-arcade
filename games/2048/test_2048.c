@@ -6,6 +6,7 @@
 
 static void test_initialization(void) {
   GameState game;
+  game_delete_save();
   game_init(&game);
 
   assert(game.score == 0);
@@ -126,6 +127,28 @@ static void test_game_over(void) {
   printf("[PASS] test_game_over\n");
 }
 
+static void test_auto_save_and_resume(void) {
+  game_delete_save();
+  GameState g1;
+  game_init(&g1);
+
+  g1.board[0][0] = 64;
+  g1.board[0][1] = 128;
+  g1.score = 500;
+  g1.move_count = 15;
+  game_save(&g1);
+
+  GameState g2;
+  game_init(&g2);
+  assert(g2.score == 500);
+  assert(g2.move_count == 15);
+  assert(g2.board[0][0] == 64);
+  assert(g2.board[0][1] == 128);
+
+  game_delete_save();
+  printf("[PASS] test_auto_save_and_resume\n");
+}
+
 int main(void) {
   srand(42);
   printf("Starting 2048 Logic Tests...\n");
@@ -134,6 +157,8 @@ int main(void) {
   test_undo();
   test_win_and_continue();
   test_game_over();
+  test_auto_save_and_resume();
   printf("All 2048 tests PASSED successfully!\n");
   return 0;
 }
+

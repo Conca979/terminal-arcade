@@ -53,6 +53,9 @@ int main(void) {
           break;
 
         case ACT_QUIT:
+          if (game.state != STATE_GAME_OVER) {
+            game_save(&game);
+          }
           game.state = STATE_EXIT;
           break;
 

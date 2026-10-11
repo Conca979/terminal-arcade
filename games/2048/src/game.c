@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 #include "../../../include/scores.h"
 
 void game_spawn_tile(GameState *game) {
@@ -38,7 +39,108 @@ void game_save_high_score(const GameState *game) {
   arcade_score_set("2048", "high_score", game->high_score);
 }
 
+static const char *get_save_path(void) {
+  FILE *f = fopen("games/2048/Makefile", "r");
+  if (f) {
+    fclose(f);
+    return "games/2048/savegame.dat";
+  }
+  return "savegame.dat";
+}
+
+#define SAVE_MAGIC_2048 0x32303438 // "2048"
+#define SAVE_VERSION_2048 1
+
+void game_save(const GameState *game) {
+  if (game->state == STATE_GAME_OVER) return;
+
+  FILE *f = fopen(get_save_path(), "wb");
+  if (!f) return;
+
+  uint32_t magic = SAVE_MAGIC_2048;
+  uint32_t ver = SAVE_VERSION_2048;
+  fwrite(&magic, sizeof(uint32_t), 1, f);
+  fwrite(&ver, sizeof(uint32_t), 1, f);
+
+  fwrite(game->board, sizeof(int), GRID_SIZE * GRID_SIZE, f);
+  fwrite(&game->score, sizeof(int), 1, f);
+  fwrite(&game->move_count, sizeof(int), 1, f);
+  fwrite(&game->last_score_gain, sizeof(int), 1, f);
+  int st = (int)game->state;
+  fwrite(&st, sizeof(int), 1, f);
+  int won = game->won_acknowledged ? 1 : 0;
+  fwrite(&won, sizeof(int), 1, f);
+
+  fwrite(&game->history_count, sizeof(int), 1, f);
+  if (game->history_count > 0 && game->history_count <= MAX_UNDO_STATES) {
+    fwrite(game->history, sizeof(BoardSnapshot), game->history_count, f);
+  }
+
+  fclose(f);
+}
+
+bool game_load(GameState *game) {
+  FILE *f = fopen(get_save_path(), "rb");
+  if (!f) return false;
+
+  uint32_t magic = 0;
+  uint32_t ver = 0;
+  if (fread(&magic, sizeof(uint32_t), 1, f) != 1 || magic != SAVE_MAGIC_2048) {
+    fclose(f);
+    return false;
+  }
+  if (fread(&ver, sizeof(uint32_t), 1, f) != 1 || ver != SAVE_VERSION_2048) {
+    fclose(f);
+    return false;
+  }
+
+  if (fread(game->board, sizeof(int), GRID_SIZE * GRID_SIZE, f) != GRID_SIZE * GRID_SIZE ||
+      fread(&game->score, sizeof(int), 1, f) != 1 ||
+      fread(&game->move_count, sizeof(int), 1, f) != 1 ||
+      fread(&game->last_score_gain, sizeof(int), 1, f) != 1) {
+    fclose(f);
+    return false;
+  }
+
+  int st = 0;
+  int won = 0;
+  if (fread(&st, sizeof(int), 1, f) != 1 ||
+      fread(&won, sizeof(int), 1, f) != 1) {
+    fclose(f);
+    return false;
+  }
+  game->state = (PlayState)st;
+  game->won_acknowledged = (won != 0);
+
+  if (fread(&game->history_count, sizeof(int), 1, f) != 1) {
+    fclose(f);
+    return false;
+  }
+
+  if (game->history_count < 0 || game->history_count > MAX_UNDO_STATES) {
+    game->history_count = 0;
+  } else if (game->history_count > 0) {
+    if ((int)fread(game->history, sizeof(BoardSnapshot), game->history_count, f) != game->history_count) {
+      game->history_count = 0;
+    }
+  }
+
+  fclose(f);
+
+  if (!game_can_move(game)) {
+    game_delete_save();
+    return false;
+  }
+
+  return true;
+}
+
+void game_delete_save(void) {
+  remove(get_save_path());
+}
+
 void game_reset(GameState *game) {
+  game_delete_save();
   memset(game->board, 0, sizeof(game->board));
   game->score = 0;
   game->move_count = 0;
@@ -49,11 +151,15 @@ void game_reset(GameState *game) {
 
   game_spawn_tile(game);
   game_spawn_tile(game);
+  game_save(game);
 }
 
 void game_init(GameState *game) {
+  memset(game, 0, sizeof(GameState));
   game_load_high_score(game);
-  game_reset(game);
+  if (!game_load(game)) {
+    game_reset(game);
+  }
 }
 
 bool game_can_move(const GameState *game) {
@@ -153,6 +259,7 @@ bool game_undo(GameState *game) {
   game->score = game->history[game->history_count].score;
   game->last_score_gain = 0;
   game->state = STATE_PLAYING;
+  game_save(game);
   return true;
 }
 
@@ -253,8 +360,12 @@ bool game_slide(GameState *game, MoveDirection dir) {
   // Check for 2048 win
   if (!game->won_acknowledged && game_has_won(game)) {
     game->state = STATE_WON;
+    game_save(game);
   } else if (!game_can_move(game)) {
     game->state = STATE_GAME_OVER;
+    game_delete_save();
+  } else {
+    game_save(game);
   }
 
   return true;

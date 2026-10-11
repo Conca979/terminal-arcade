@@ -30,5 +30,8 @@ bool game_undo(GameState *game);
 void game_spawn_tile(GameState *game);
 void game_load_high_score(GameState *game);
 void game_save_high_score(const GameState *game);
+void game_save(const GameState *game);
+bool game_load(GameState *game);
+void game_delete_save(void);
 
 #endif /* GAME_2048_H */

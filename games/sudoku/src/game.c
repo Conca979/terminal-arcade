@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 
 static const uint8_t BASE_GRID[GRID_SIZE][GRID_SIZE] = {
   {1, 2, 3, 4, 5, 6, 7, 8, 9},
@@ -294,8 +295,154 @@ void game_generate_puzzle(GameState *game, DifficultyLevel diff) {
   game_check_conflicts(game);
 }
 
+int game_get_elapsed_seconds(const GameState *game, unsigned long long current_time) {
+  unsigned long long total_ms = game->saved_elapsed_ms;
+  if (game->start_time_ms != 0) {
+    if (game->state == STATE_PAUSED) {
+      total_ms += (game->pause_start_ms - game->start_time_ms - game->elapsed_paused_ms);
+    } else {
+      total_ms += (current_time - game->start_time_ms - game->elapsed_paused_ms);
+    }
+  }
+  return (int)(total_ms / 1000ULL);
+}
+
+static const char *get_save_path(void) {
+  FILE *f = fopen("games/sudoku/Makefile", "r");
+  if (f) {
+    fclose(f);
+    return "games/sudoku/savegame.dat";
+  }
+  return "savegame.dat";
+}
+
+#define SAVE_MAGIC_SUDOKU 0x5355444F // "SUDO"
+#define SAVE_VERSION_SUDOKU 1
+
+void game_delete_save(void) {
+  remove(get_save_path());
+}
+
+void game_save(const GameState *game, unsigned long long current_time) {
+  if (game->state == STATE_VICTORY) return;
+
+  FILE *f = fopen(get_save_path(), "wb");
+  if (!f) return;
+
+  uint32_t magic = SAVE_MAGIC_SUDOKU;
+  uint32_t ver = SAVE_VERSION_SUDOKU;
+  fwrite(&magic, sizeof(uint32_t), 1, f);
+  fwrite(&ver, sizeof(uint32_t), 1, f);
+
+  fwrite(game->grid, sizeof(Cell), GRID_SIZE * GRID_SIZE, f);
+  fwrite(&game->cursor_r, sizeof(uint8_t), 1, f);
+  fwrite(&game->cursor_c, sizeof(uint8_t), 1, f);
+
+  int diff = (int)game->difficulty;
+  fwrite(&diff, sizeof(int), 1, f);
+  int note_mode = game->note_mode ? 1 : 0;
+  fwrite(&note_mode, sizeof(int), 1, f);
+  int show_errors = game->show_errors ? 1 : 0;
+  fwrite(&show_errors, sizeof(int), 1, f);
+  fwrite(&game->mistakes, sizeof(int), 1, f);
+  fwrite(&game->hints_used, sizeof(int), 1, f);
+  fwrite(&game->moves_made, sizeof(int), 1, f);
+
+  int elapsed_sec = game_get_elapsed_seconds(game, current_time);
+  fwrite(&elapsed_sec, sizeof(int), 1, f);
+
+  fwrite(&game->undo_count, sizeof(int), 1, f);
+  if (game->undo_count > 0 && game->undo_count <= MAX_UNDO_HISTORY) {
+    fwrite(game->undo_stack, sizeof(UndoStep), game->undo_count, f);
+  }
+
+  fclose(f);
+}
+
+bool game_load(GameState *game) {
+  FILE *f = fopen(get_save_path(), "rb");
+  if (!f) return false;
+
+  uint32_t magic = 0;
+  uint32_t ver = 0;
+  if (fread(&magic, sizeof(uint32_t), 1, f) != 1 || magic != SAVE_MAGIC_SUDOKU) {
+    fclose(f);
+    return false;
+  }
+  if (fread(&ver, sizeof(uint32_t), 1, f) != 1 || ver != SAVE_VERSION_SUDOKU) {
+    fclose(f);
+    return false;
+  }
+
+  if (fread(game->grid, sizeof(Cell), GRID_SIZE * GRID_SIZE, f) != GRID_SIZE * GRID_SIZE ||
+      fread(&game->cursor_r, sizeof(uint8_t), 1, f) != 1 ||
+      fread(&game->cursor_c, sizeof(uint8_t), 1, f) != 1) {
+    fclose(f);
+    return false;
+  }
+
+  int diff = 0, note_mode = 0, show_errors = 0;
+  if (fread(&diff, sizeof(int), 1, f) != 1 ||
+      fread(&note_mode, sizeof(int), 1, f) != 1 ||
+      fread(&show_errors, sizeof(int), 1, f) != 1 ||
+      fread(&game->mistakes, sizeof(int), 1, f) != 1 ||
+      fread(&game->hints_used, sizeof(int), 1, f) != 1 ||
+      fread(&game->moves_made, sizeof(int), 1, f) != 1) {
+    fclose(f);
+    return false;
+  }
+
+  int elapsed_sec = 0;
+  if (fread(&elapsed_sec, sizeof(int), 1, f) != 1) {
+    fclose(f);
+    return false;
+  }
+
+  if (fread(&game->undo_count, sizeof(int), 1, f) != 1) {
+    fclose(f);
+    return false;
+  }
+
+  if (game->undo_count < 0 || game->undo_count > MAX_UNDO_HISTORY) {
+    game->undo_count = 0;
+  } else if (game->undo_count > 0) {
+    if ((int)fread(game->undo_stack, sizeof(UndoStep), game->undo_count, f) != game->undo_count) {
+      game->undo_count = 0;
+    }
+  }
+
+  fclose(f);
+
+  if (diff < 0 || diff >= DIFF_COUNT) diff = DIFF_MEDIUM;
+  game->difficulty = (DifficultyLevel)diff;
+  game->note_mode = (note_mode != 0);
+  game->show_errors = (show_errors != 0);
+
+  if (game->cursor_r >= GRID_SIZE) game->cursor_r = 4;
+  if (game->cursor_c >= GRID_SIZE) game->cursor_c = 4;
+
+  game->state = STATE_PLAYING;
+  game->saved_elapsed_ms = (unsigned long long)elapsed_sec * 1000ULL;
+  game->start_time_ms = 0;
+  game->elapsed_paused_ms = 0;
+  game->pause_start_ms = 0;
+
+  game_check_conflicts(game);
+
+  if (game_check_victory(game)) {
+    game_delete_save();
+    return false;
+  }
+
+  return true;
+}
+
 void game_init(GameState *game, DifficultyLevel diff) {
   memset(game, 0, sizeof(GameState));
+  if (game_load(game)) {
+    return;
+  }
+
   game->cursor_r = 4;
   game->cursor_c = 4;
   game->difficulty = diff;
@@ -308,9 +455,11 @@ void game_init(GameState *game, DifficultyLevel diff) {
   game->start_time_ms = 0;
   game->elapsed_paused_ms = 0;
   game->pause_start_ms = 0;
+  game->saved_elapsed_ms = 0;
   game->undo_count = 0;
 
   game_generate_puzzle(game, diff);
+  game_save(game, 0);
 }
 
 void game_reset_board(GameState *game) {
@@ -485,16 +634,6 @@ bool game_check_victory(const GameState *game) {
   return true;
 }
 
-int game_get_elapsed_seconds(const GameState *game, unsigned long long current_time) {
-  if (game->start_time_ms == 0) return 0;
-  if (game->state == STATE_PAUSED) {
-    unsigned long long active_ms = game->pause_start_ms - game->start_time_ms - game->elapsed_paused_ms;
-    return (int)(active_ms / 1000ULL);
-  }
-  unsigned long long active_ms = current_time - game->start_time_ms - game->elapsed_paused_ms;
-  return (int)(active_ms / 1000ULL);
-}
-
 uint16_t game_get_valid_candidates(const GameState *game, int r, int c) {
   uint16_t mask = 0;
   for (uint8_t v = 1; v <= 9; v++) {
@@ -529,6 +668,9 @@ void game_handle_action(GameState *game, GameAction action, unsigned long long c
   }
 
   if (action == ACT_QUIT) {
+    if (game->state != STATE_VICTORY) {
+      game_save(game, current_time);
+    }
     game->state = STATE_EXIT;
     return;
   }
@@ -549,6 +691,7 @@ void game_handle_action(GameState *game, GameAction action, unsigned long long c
   }
 
   if (action == ACT_RESTART) {
+    game_delete_save();
     game_init(game, game->difficulty);
     game->start_time_ms = current_time;
     return;
@@ -556,6 +699,7 @@ void game_handle_action(GameState *game, GameAction action, unsigned long long c
 
   if (action == ACT_NEXT_DIFF) {
     DifficultyLevel next_d = (DifficultyLevel)((game->difficulty + 1) % DIFF_COUNT);
+    game_delete_save();
     game_init(game, next_d);
     game->start_time_ms = current_time;
     return;
@@ -622,6 +766,12 @@ void game_handle_action(GameState *game, GameAction action, unsigned long long c
 
     default:
       break;
+  }
+
+  if (game->state == STATE_VICTORY) {
+    game_delete_save();
+  } else {
+    game_save(game, current_time);
   }
 }
 

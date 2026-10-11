@@ -22,6 +22,7 @@ A terminal-based Sudoku puzzle game featuring intelligent board generation, 4 di
   - **Error & Conflict Detection**: Live red indicator highlights duplicate digits sharing the same row, column, or block.
 - **64-Step Undo Stack**: Press `U` or `Z` at any time to rewind moves, value entries, or pencil note edits.
 - **Hint System**: Press `H` to reveal the solution for any stuck cell.
+- **Auto-Save & Seamless Resuming**: Active puzzles, timer, pencil notes, difficulty, and undo history are auto-saved to `savegame.dat`. Resumes instantly upon launching the game.
 
 ---
 
@@ -38,8 +39,8 @@ A terminal-based Sudoku puzzle game featuring intelligent board generation, 4 di
 | `E` | Toggle real-time conflict checking |
 | `Tab` / `M` | Cycle difficulty (Easy / Medium / Hard / Expert) |
 | `P` | Pause / resume game |
-| `R` | Restart / generate new puzzle |
-| `Q` / `Esc` | Quit game |
+| `R` | Start fresh puzzle (clears active save) |
+| `Q` / `Esc` | Auto-save and exit to Arcade Hub |
 
 ---
 

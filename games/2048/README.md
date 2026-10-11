@@ -9,8 +9,9 @@ A fast, beautifully styled terminal implementation of the classic **2048** puzzl
 - **Classic 4x4 Gameplay**: 90% spawn chance of 2, 10% spawn chance of 4 on empty cells.
 - **Accurate Sliding & Merging**: Tiles slide, merge once per turn, and increment score by merged values.
 - **Multi-Level Undo**: Press `U` or `Z` to step backward up to 32 previous moves.
+- **Auto-Save & Seamless Resuming**: The board, score, move count, and undo history are automatically persisted to `savegame.dat`. Resumes right where you left off upon reopening.
 - **Vibrant ANSI Palette**: Unique tailored background and foreground colors for every power of two (2 to 4096+).
-- **Persistent High Scores**: High scores are saved to and loaded from `2048_highscore.txt`.
+- **Persistent High Scores**: High scores are saved to and loaded from centralized `arcade_scores.ini`.
 - **Win & Continue**: Reach the 2048 tile to trigger a victory banner, with the option to continue playing for higher numbers.
 - **Versatile Controls**: Supports Arrow keys, WASD, and Vim-style HJKL bindings.
 
@@ -45,8 +46,8 @@ gcc -Wall -Wextra -O2 -Iinclude -o 2048.exe src/main.c src/game.c src/input.c sr
 | `→` | `D` / `L` | Slide Right |
 | `U` | `Z` | Undo Move |
 | `C` | `Enter` / `Space` | Continue Playing after 2048 Win |
-| `R` | — | Restart Game |
-| `Q` | `Esc` | Quit Game |
+| `R` | — | Start Fresh Game (clears save) |
+| `Q` | `Esc` | Auto-save and Exit |
 
 ---
 

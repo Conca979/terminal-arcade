@@ -13,12 +13,21 @@ static int load_high_score(void) {
   return arcade_score_get("breaker", "high_score");
 }
 
+static const char *get_save_path(void) {
+  FILE *f = fopen("games/breaker/Makefile", "r");
+  if (f) {
+    fclose(f);
+    return "games/breaker/savegame.dat";
+  }
+  return "savegame.dat";
+}
+
 static void save_high_score(int score) {
   arcade_score_set("breaker", "high_score", score);
 }
 
 void game_save(const GameState *game) {
-  FILE *f = fopen(SAVE_FILE, "wb");
+  FILE *f = fopen(get_save_path(), "wb");
   if (!f) return;
 
   uint32_t magic = SAVE_MAGIC;
@@ -37,7 +46,7 @@ void game_save(const GameState *game) {
 }
 
 bool game_load(GameState *game) {
-  FILE *f = fopen(SAVE_FILE, "rb");
+  FILE *f = fopen(get_save_path(), "rb");
   if (!f) return false;
 
   uint32_t magic = 0;
@@ -74,7 +83,7 @@ bool game_load(GameState *game) {
 }
 
 void game_delete_save(void) {
-  remove(SAVE_FILE);
+  remove(get_save_path());
 }
 
 void game_spawn_new_row(GameState *game) {

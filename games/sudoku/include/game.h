@@ -69,6 +69,7 @@ typedef struct {
   unsigned long long start_time_ms;
   unsigned long long elapsed_paused_ms;
   unsigned long long pause_start_ms;
+  unsigned long long saved_elapsed_ms;
 
   UndoStep undo_stack[MAX_UNDO_HISTORY];
   int undo_count;
@@ -93,5 +94,9 @@ bool game_check_victory(const GameState *game);
 
 int game_get_elapsed_seconds(const GameState *game, unsigned long long current_time);
 uint16_t game_get_valid_candidates(const GameState *game, int r, int c);
+
+void game_save(const GameState *game, unsigned long long current_time);
+bool game_load(GameState *game);
+void game_delete_save(void);
 
 #endif // SUDOKU_GAME_H

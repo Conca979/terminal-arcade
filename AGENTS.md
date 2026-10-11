@@ -140,7 +140,8 @@ To add any new game (e.g. `breakout`, `pong`, `sokoban`):
 - `↑` / `↓` / `←` / `→` or `W` / `S` / `A` / `D` or `H` / `J` / `K` / `L`: Slide tiles
 - `U` / `Z`: Undo move (up to 32 moves)
 - `C` / `Enter`: Continue playing past 2048
-- `R`: Restart | `Q`: Quit
+- `R`: Start fresh game (clears active save)
+- `Q` / `Esc`: Auto-save board & progress, and return to Arcade Hub
 
 ### Minesweeper (`games/minesweeper/minesweeper.exe`)
 - `Arrows` / `WASD` / `HJKL`: Move cursor
@@ -172,7 +173,8 @@ To add any new game (e.g. `breakout`, `pong`, `sokoban`):
 - `E`: Toggle conflict checking
 - `Tab` / `M`: Cycle difficulty (Easy, Medium, Hard, Expert)
 - `P` / `Esc`: Pause / resume
-- `R`: New game / restart | `Q`: Quit
+- `R`: Start fresh puzzle (clears active save)
+- `Q` / `Esc`: Auto-save in-progress puzzle & timer, and return to Arcade Hub
 
 ### Neon Balls Bricks Breaker (`games/breaker/breaker.exe`)
 - `Mouse Move`: Aim trajectory laser guide in real time

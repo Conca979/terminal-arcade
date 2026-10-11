@@ -4,6 +4,7 @@
 #include "game.h"
 
 static void test_initialization_and_generation(void) {
+  game_delete_save();
   GameState game;
   game_init(&game, DIFF_EASY);
 
@@ -190,6 +191,46 @@ static void test_hint_and_victory(void) {
   printf("[PASS] test_hint_and_victory\n");
 }
 
+static void test_auto_save_and_resume(void) {
+  game_delete_save();
+  GameState g1;
+  game_init(&g1, DIFF_MEDIUM);
+
+  int empty_r = -1, empty_c = -1;
+  for (int r = 0; r < GRID_SIZE && empty_r == -1; r++) {
+    for (int c = 0; c < GRID_SIZE; c++) {
+      if (!g1.grid[r][c].is_given) {
+        empty_r = r;
+        empty_c = c;
+        break;
+      }
+    }
+  }
+  assert(empty_r != -1);
+  uint8_t placed_val = g1.grid[empty_r][empty_c].solution;
+  game_set_cell(&g1, empty_r, empty_c, placed_val);
+  g1.cursor_r = (uint8_t)empty_r;
+  g1.cursor_c = (uint8_t)empty_c;
+  g1.mistakes = 2;
+  g1.hints_used = 1;
+
+  g1.saved_elapsed_ms = 45000;
+  game_save(&g1, 0);
+
+  GameState g2;
+  game_init(&g2, DIFF_EASY);
+  assert(g2.difficulty == DIFF_MEDIUM);
+  assert(g2.grid[empty_r][empty_c].value == placed_val);
+  assert(g2.cursor_r == (uint8_t)empty_r);
+  assert(g2.cursor_c == (uint8_t)empty_c);
+  assert(g2.mistakes == 2);
+  assert(g2.hints_used == 1);
+  assert(game_get_elapsed_seconds(&g2, 0) == 45);
+
+  game_delete_save();
+  printf("[PASS] test_auto_save_and_resume\n");
+}
+
 int main(void) {
   printf("Starting Sudoku Logic Tests...\n");
   test_initialization_and_generation();
@@ -197,6 +238,7 @@ int main(void) {
   test_conflict_detection();
   test_notes_mode();
   test_hint_and_victory();
+  test_auto_save_and_resume();
   printf("All Sudoku tests PASSED successfully!\n");
   return 0;
 }

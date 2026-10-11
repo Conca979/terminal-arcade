@@ -39,6 +39,10 @@ int main(void) {
     }
   }
 
+  if (game.state != STATE_VICTORY) {
+    game_save(&game, platform_get_time_ms());
+  }
+
   render_cleanup();
   platform_cleanup();
 
