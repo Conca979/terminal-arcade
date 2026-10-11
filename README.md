@@ -127,6 +127,15 @@ make test
 
 ---
 
+## Centralized High Scores System
+
+All arcade games share a unified, structured score repository stored in `arcade_scores.ini`:
+- **Game Isolation**: Each game owns its dedicated section (e.g., `[tetris]`, `[minesweeper]`, `[breaker]`), preventing any cross-game data overwrite.
+- **Dynamic Path Resolution**: `include/scores.h` automatically resolves the project root from any execution context (Arcade Hub, standalone game executable, or unit test runner).
+- **Live Hub Display**: The interactive `arcade.exe` launcher queries the store in real time and displays your current best score for each game directly on the menu.
+
+---
+
 ## Adding New Games (Extensibility)
 
 The project is structured so any new C terminal game can be added in 3 steps:

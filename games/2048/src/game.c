@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "../../../include/scores.h"
 
 void game_spawn_tile(GameState *game) {
   int empty_coords[GRID_SIZE * GRID_SIZE][2];
@@ -30,22 +31,11 @@ void game_spawn_tile(GameState *game) {
 }
 
 void game_load_high_score(GameState *game) {
-  game->high_score = 0;
-  FILE *f = fopen(HIGH_SCORE_FILE, "r");
-  if (f) {
-    if (fscanf(f, "%d", &game->high_score) != 1) {
-      game->high_score = 0;
-    }
-    fclose(f);
-  }
+  game->high_score = arcade_score_get("2048", "high_score");
 }
 
 void game_save_high_score(const GameState *game) {
-  FILE *f = fopen(HIGH_SCORE_FILE, "w");
-  if (f) {
-    fprintf(f, "%d\n", game->high_score);
-    fclose(f);
-  }
+  arcade_score_set("2048", "high_score", game->high_score);
 }
 
 void game_reset(GameState *game) {

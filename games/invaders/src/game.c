@@ -2,24 +2,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "../../../include/scores.h"
 
 void game_load_high_score(GameState *game) {
-  game->high_score = 0;
-  FILE *f = fopen(HIGH_SCORE_FILE, "r");
-  if (f) {
-    if (fscanf(f, "%d", &game->high_score) != 1) {
-      game->high_score = 0;
-    }
-    fclose(f);
-  }
+  game->high_score = arcade_score_get("invaders", "high_score");
 }
 
 void game_save_high_score(const GameState *game) {
-  FILE *f = fopen(HIGH_SCORE_FILE, "w");
-  if (f) {
-    fprintf(f, "%d\n", game->high_score);
-    fclose(f);
-  }
+  arcade_score_set("invaders", "high_score", game->high_score);
 }
 
 static void trigger_explosion(GameState *game, int x, int y, unsigned long long current_time) {

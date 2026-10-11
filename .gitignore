@@ -6,6 +6,8 @@
 # Runtime data
 *highscore.txt
 *scores.txt
+arcade_scores.ini
+*.ini
 *.dat
 games/**/*highscore.txt
 games/**/*scores.txt

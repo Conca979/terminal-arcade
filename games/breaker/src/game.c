@@ -3,25 +3,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "../../../include/scores.h"
 
 #define PI 3.14159265358979323846f
 #define SAVE_MAGIC 0x4B524242 // "BBRK"
 #define SAVE_VERSION 1
 
 static int load_high_score(void) {
-  FILE *f = fopen(HIGHSCORE_FILE, "r");
-  if (!f) return 0;
-  int hs = 0;
-  if (fscanf(f, "%d", &hs) != 1) hs = 0;
-  fclose(f);
-  return hs;
+  return arcade_score_get("breaker", "high_score");
 }
 
 static void save_high_score(int score) {
-  FILE *f = fopen(HIGHSCORE_FILE, "w");
-  if (!f) return;
-  fprintf(f, "%d\n", score);
-  fclose(f);
+  arcade_score_set("breaker", "high_score", score);
 }
 
 void game_save(const GameState *game) {

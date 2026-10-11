@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -O2
+CFLAGS = -Wall -Wextra -O2 -Iinclude
 LAUNCHER = arcade.exe
 
 ifeq ($(OS),Windows_NT)

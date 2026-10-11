@@ -14,6 +14,5 @@
 #define LAUNCH_DELAY_MS 50  // Delay between consecutive ball launches
 
 #define SAVE_FILE "savegame.dat"
-#define HIGHSCORE_FILE "highscore.txt"
 
 #endif // BREAKER_CONFIG_H

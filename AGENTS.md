@@ -6,8 +6,10 @@ A collection of high-performance, modular terminal games written in C for Window
 
 ```
 terminal-arcade/
+├── include/
+│   └── scores.h                # Centralized INI score management for all arcade games
 ├── src/
-│   └── main.c                  # Master Arcade interactive terminal launcher
+│   └── main.c                  # Master Arcade interactive terminal launcher with live high scores
 ├── games/
 │   ├── tetris/                 # Classic Guideline Tetris with SRS & 7-bag
 │   │   ├── include/            # config.h, game.h, input.h, platform.h, render.h

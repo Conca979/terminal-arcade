@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "../../../include/scores.h"
 
 // Standard SRS piece definitions: 4 blocks per rotation state
 static const Point PIECE_BLOCKS[TET_COUNT][4][4] = {
@@ -279,22 +280,11 @@ static void lock_piece_to_board(GameState *game, unsigned long long current_time
 }
 
 void game_load_high_score(GameState *game) {
-  game->high_score = 0;
-  FILE *f = fopen(HIGH_SCORE_FILE, "r");
-  if (f) {
-    if (fscanf(f, "%d", &game->high_score) != 1) {
-      game->high_score = 0;
-    }
-    fclose(f);
-  }
+  game->high_score = arcade_score_get("tetris", "high_score");
 }
 
 void game_save_high_score(const GameState *game) {
-  FILE *f = fopen(HIGH_SCORE_FILE, "w");
-  if (f) {
-    fprintf(f, "%d\n", game->high_score);
-    fclose(f);
-  }
+  arcade_score_set("tetris", "high_score", game->high_score);
 }
 
 void game_reset(GameState *game) {

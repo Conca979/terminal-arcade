@@ -2,30 +2,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "../../../include/scores.h"
 
 void game_load_scores(GameState *game) {
-  game->best_times[0] = 0;
-  game->best_times[1] = 0;
-  game->best_times[2] = 0;
-
-  FILE *f = fopen(SCORES_FILE, "r");
-  if (f) {
-    int b = 0, i = 0, e = 0;
-    if (fscanf(f, "%d %d %d", &b, &i, &e) == 3) {
-      game->best_times[0] = b;
-      game->best_times[1] = i;
-      game->best_times[2] = e;
-    }
-    fclose(f);
-  }
+  game->best_times[0] = arcade_score_get("minesweeper", "best_time_beginner");
+  game->best_times[1] = arcade_score_get("minesweeper", "best_time_intermediate");
+  game->best_times[2] = arcade_score_get("minesweeper", "best_time_expert");
 }
 
 void game_save_scores(const GameState *game) {
-  FILE *f = fopen(SCORES_FILE, "w");
-  if (f) {
-    fprintf(f, "%d %d %d\n", game->best_times[0], game->best_times[1], game->best_times[2]);
-    fclose(f);
-  }
+  arcade_score_set("minesweeper", "best_time_beginner", game->best_times[0]);
+  arcade_score_set("minesweeper", "best_time_intermediate", game->best_times[1]);
+  arcade_score_set("minesweeper", "best_time_expert", game->best_times[2]);
 }
 
 void game_set_difficulty(GameState *game, Difficulty diff) {

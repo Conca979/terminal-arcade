@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <windows.h>
+#include "scores.h"
 
 #define COLOR_RESET "\033[0m"
 #define COLOR_BORDER "\033[38;2;80;120;175m"
@@ -10,53 +11,72 @@
 #define COLOR_SEL "\033[1;38;2;255;220;50;48;2;45;65;95m"
 #define COLOR_DIM "\033[38;2;140;150;170m"
 #define COLOR_ACCENT "\033[1;38;2;0;220;210m"
+#define COLOR_SCORE "\033[1;38;2;255;215;60m"
 
 typedef struct {
   const char *title;
   const char *desc;
   const char *executable_path;
+  const char *score_section;
+  const char *score_key;
 } GameEntry;
 
 static const GameEntry GAMES[] = {
   {
     "Tetris CLI",
-    "Classic Guideline Tetris with SRS, ghost piece & 7-bag",
-    "games\\tetris\\tetris.exe"
+    "Classic Guideline Tetris with SRS & 7-bag",
+    "games\\tetris\\tetris.exe",
+    "tetris",
+    "high_score"
   },
   {
     "2048 CLI",
-    "4x4 slide & merge puzzle with 32-step undo history",
-    "games\\2048\\2048.exe"
+    "4x4 slide & merge puzzle with 32-step undo",
+    "games\\2048\\2048.exe",
+    "2048",
+    "high_score"
   },
   {
     "Minesweeper CLI",
-    "Minefield sweeper with first-click safety, chords & timer",
-    "games\\minesweeper\\minesweeper.exe"
+    "Minefield sweeper with first-click safety",
+    "games\\minesweeper\\minesweeper.exe",
+    "minesweeper",
+    "best_time_beginner"
   },
   {
     "Cyberpunk Snake",
-    "Neon light-cycle snake with power-ups, buffs & wrap mode",
-    "games\\snake\\snake.exe"
+    "Neon light-cycle snake with power-ups",
+    "games\\snake\\snake.exe",
+    "snake",
+    "high_score"
   },
   {
     "Space Invaders CLI",
-    "Arcade shmup with marching swarms, bunkers & mystery UFO",
-    "games\\invaders\\invaders.exe"
+    "Arcade shmup with marching swarms & UFO",
+    "games\\invaders\\invaders.exe",
+    "invaders",
+    "high_score"
   },
   {
     "Sudoku CLI",
-    "Logic number grid with notes, conflict check & inspector",
-    "games\\sudoku\\sudoku.exe"
+    "Logic number grid with notes & inspector",
+    "games\\sudoku\\sudoku.exe",
+    NULL,
+    NULL
   },
   {
     "Bricks Breaker CLI",
-    "Endless physics ball swarm with mouse aim & auto-resume",
-    "games\\breaker\\breaker.exe"
+    "Endless physics ball swarm with mouse aim",
+    "games\\breaker\\breaker.exe",
+    "breaker",
+    "high_score"
   },
   {
     "Block Puzzle CLI",
-    "Classic 10x10 wood puzzle with mouse aim & auto-resume",
-    "games\\block\\block.exe"
+    "Classic 10x10 wood puzzle with mouse & combo",
+    "games\\block\\block.exe",
+    "block",
+    "high_score"
   }
 };
 
@@ -76,9 +96,9 @@ static void draw_menu(int selected) {
   printf("\033[2J\033[H");
 
   printf(
-    "  %s╔═══════════════════════════════════════════════════════════════╗%s\n"
-    "  %s║%s              %sT E R M I N A L   A R C A D E   ( C )%s              %s║%s\n"
-    "  %s╚═══════════════════════════════════════════════════════════════╝%s\n\n",
+    "  %s╔═════════════════════════════════════════════════════════════════════════════╗%s\n"
+    "  %s║%s                      %sT E R M I N A L   A R C A D E   ( C )%s                      %s║%s\n"
+    "  %s╚═════════════════════════════════════════════════════════════════════════════╝%s\n\n",
     COLOR_BORDER, COLOR_RESET,
     COLOR_BORDER, COLOR_RESET, COLOR_TITLE, COLOR_RESET, COLOR_BORDER, COLOR_RESET,
     COLOR_BORDER, COLOR_RESET
@@ -87,10 +107,26 @@ static void draw_menu(int selected) {
   printf("  %sChoose a game to play:%s\n\n", COLOR_ACCENT, COLOR_RESET);
 
   for (int i = 0; i < GAME_COUNT; i++) {
+    char score_badge[32] = "";
+    if (GAMES[i].score_section && GAMES[i].score_key) {
+      int score = arcade_score_get(GAMES[i].score_section, GAMES[i].score_key);
+      if (score > 0) {
+        if (strcmp(GAMES[i].score_section, "minesweeper") == 0) {
+          snprintf(score_badge, sizeof(score_badge), "[Best: %ds]", score);
+        } else {
+          snprintf(score_badge, sizeof(score_badge), "[Best: %d]", score);
+        }
+      }
+    }
+
     if (i == selected) {
-      printf("    %s > [%d] %-16s %-42s %s\n", COLOR_SEL, i + 1, GAMES[i].title, GAMES[i].desc, COLOR_RESET);
+      printf("    %s > [%d] %-18s %-16s %-44s %s\n",
+             COLOR_SEL, i + 1, GAMES[i].title, score_badge, GAMES[i].desc, COLOR_RESET);
     } else {
-      printf("      [%d] \033[1;37m%-16s\033[0m %s%-42s%s\n", i + 1, GAMES[i].title, COLOR_DIM, GAMES[i].desc, COLOR_RESET);
+      printf("      [%d] \033[1;37m%-18s\033[0m %s%-16s%s %s%-44s%s\n",
+             i + 1, GAMES[i].title,
+             COLOR_SCORE, score_badge, COLOR_RESET,
+             COLOR_DIM, GAMES[i].desc, COLOR_RESET);
     }
   }
 

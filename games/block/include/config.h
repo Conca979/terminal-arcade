@@ -7,6 +7,5 @@
 #define MAX_SHAPE_DIM 5
 
 #define SAVE_FILE "savegame.dat"
-#define HIGHSCORE_FILE "highscore.txt"
 
 #endif // BLOCK_CONFIG_H

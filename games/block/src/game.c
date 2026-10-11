@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "../../../include/scores.h"
 
 #define SAVE_MAGIC 0x4B4C4257 // "WBLK"
 #define SAVE_VERSION 1
@@ -58,19 +59,11 @@ static const Shape SHAPES[] = {
 static const int SHAPE_COUNT = sizeof(SHAPES) / sizeof(SHAPES[0]);
 
 static int load_high_score(void) {
-  FILE *f = fopen(HIGHSCORE_FILE, "r");
-  if (!f) return 0;
-  int hs = 0;
-  if (fscanf(f, "%d", &hs) != 1) hs = 0;
-  fclose(f);
-  return hs;
+  return arcade_score_get("block", "high_score");
 }
 
 static void save_high_score(int score) {
-  FILE *f = fopen(HIGHSCORE_FILE, "w");
-  if (!f) return;
-  fprintf(f, "%d\n", score);
-  fclose(f);
+  arcade_score_set("block", "high_score", score);
 }
 
 void game_save(const GameState *game) {
