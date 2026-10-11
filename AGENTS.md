@@ -39,10 +39,16 @@ terminal-arcade/
 │   │   ├── test_invaders.c     # Unit test suite
 │   │   ├── Makefile            # Standalone build pipeline
 │   │   └── README.md           # Game guide
-│   └── sudoku/                 # Logic puzzle with notes, conflicts & inspector
+│   ├── sudoku/                 # Logic puzzle with notes, conflicts & inspector
+│   │   ├── include/            # config.h, game.h, input.h, platform.h, render.h
+│   │   ├── src/                # game.c, input.c, main.c, platform.c, render.c
+│   │   ├── test_sudoku.c       # Unit test suite
+│   │   ├── Makefile            # Standalone build pipeline
+│   │   └── README.md           # Game guide
+│   └── breaker/                # Neon Balls Bricks Breaker with mouse aim & auto-save
 │       ├── include/            # config.h, game.h, input.h, platform.h, render.h
 │       ├── src/                # game.c, input.c, main.c, platform.c, render.c
-│       ├── test_sudoku.c       # Unit test suite
+│       ├── test_breaker.c      # Unit test suite
 │       ├── Makefile            # Standalone build pipeline
 │       └── README.md           # Game guide
 ├── Makefile                    # Master build & test pipeline
@@ -77,7 +83,7 @@ To add any new game (e.g. `breakout`, `pong`, `sokoban`):
   ```bash
   make
   ```
-  Produces `arcade.exe`, `games/tetris/tetris.exe`, `games/2048/2048.exe`, `games/minesweeper/minesweeper.exe`, `games/snake/snake.exe`, `games/invaders/invaders.exe`, and `games/sudoku/sudoku.exe`.
+  Produces `arcade.exe`, `games/tetris/tetris.exe`, `games/2048/2048.exe`, `games/minesweeper/minesweeper.exe`, `games/snake/snake.exe`, `games/invaders/invaders.exe`, `games/sudoku/sudoku.exe`, and `games/breaker/breaker.exe`.
 
 - **Run Full Automated Test Suite**:
   ```bash
@@ -93,6 +99,7 @@ To add any new game (e.g. `breakout`, `pong`, `sokoban`):
   make snake
   make invaders
   make sudoku
+  make breaker
   ```
 
 - **Clean Entire Workspace**:
@@ -107,7 +114,7 @@ To add any new game (e.g. `breakout`, `pong`, `sokoban`):
 ### Arcade Hub Launcher (`arcade.exe`)
 - `↑` / `↓` / `W` / `S`: Navigate game selection
 - `Enter` / `Space`: Launch selected game
-- `1` - `6`: Quick select and launch
+- `1` - `7`: Quick select and launch
 - `Q`: Quit arcade
 
 ### Tetris (`games/tetris/tetris.exe`)
@@ -157,3 +164,11 @@ To add any new game (e.g. `breakout`, `pong`, `sokoban`):
 - `Tab` / `M`: Cycle difficulty (Easy, Medium, Hard, Expert)
 - `P` / `Esc`: Pause / resume
 - `R`: New game / restart | `Q`: Quit
+
+### Neon Balls Bricks Breaker (`games/breaker/breaker.exe`)
+- `Mouse Move`: Aim trajectory laser guide in real time
+- `Left Click` / `Space` / `Enter`: Launch ball swarm
+- `Right Click` / `F` / Hold `Space`: Toggle 3x Fast-Forward Turbo mode
+- `←` / `→` or `A` / `D`: Adjust aim angle via keyboard
+- `R`: Start fresh endless run
+- `Q` / `Esc`: Auto-save progress and return to Arcade Hub

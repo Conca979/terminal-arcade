@@ -47,6 +47,11 @@ static const GameEntry GAMES[] = {
     "Sudoku CLI",
     "Logic number grid with notes, conflict check & inspector",
     "games\\sudoku\\sudoku.exe"
+  },
+  {
+    "Bricks Breaker CLI",
+    "Endless physics ball swarm with mouse aim & auto-resume",
+    "games\\breaker\\breaker.exe"
   }
 };
 

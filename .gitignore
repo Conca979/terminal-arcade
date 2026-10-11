@@ -6,8 +6,10 @@
 # Runtime data
 *highscore.txt
 *scores.txt
+*.dat
 games/**/*highscore.txt
 games/**/*scores.txt
+games/**/savegame.dat
 
 # Editor and IDE metadata
 .vscode/

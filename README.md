@@ -61,6 +61,14 @@ Logic number puzzle featuring:
 - Crosshair and identical number highlights with real-time conflict checking
 - 64-step undo stack (`U`) and hint assistant (`H`)
 
+### 7. 🔮 Neon Balls Bricks Breaker (`games/breaker/`)
+Physics-based casual arcade puzzle featuring:
+- High-resolution arena (~96 × 42) optimized for large console displays
+- Real-time mouse trajectory laser aiming with multi-wall bounce preview
+- Left-click or Space to fire streaming ball swarms; right-click for 3x Turbo mode
+- Endless mode with escalating brick health and danger line threshold
+- Persistent auto-save system that seamlessly preserves and resumes runs
+
 ---
 
 ## Quick Start
@@ -94,6 +102,7 @@ Or run any game standalone directly:
 .\games\snake\snake.exe
 .\games\invaders\invaders.exe
 .\games\sudoku\sudoku.exe
+.\games\breaker\breaker.exe
 ```
 
 ---
