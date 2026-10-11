@@ -52,6 +52,11 @@ static const GameEntry GAMES[] = {
     "Bricks Breaker CLI",
     "Endless physics ball swarm with mouse aim & auto-resume",
     "games\\breaker\\breaker.exe"
+  },
+  {
+    "Block Puzzle CLI",
+    "Classic 10x10 wood puzzle with mouse aim & auto-resume",
+    "games\\block\\block.exe"
   }
 };
 

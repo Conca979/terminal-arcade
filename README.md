@@ -69,6 +69,15 @@ Physics-based casual arcade puzzle featuring:
 - Endless mode with escalating brick health and danger line threshold
 - Persistent auto-save system that seamlessly preserves and resumes runs
 
+### 8. 🪵 Classic Wood Block Puzzle (`games/block/`)
+Classic 10×10 wooden tile puzzle featuring:
+- High-fidelity 10×10 grid layout with side-by-side stats and 3-piece candidate tray
+- Real-time mouse picking & placement with glowing emerald/crimson ghost placement preview
+- Dual controls: Point-and-click mouse or keyboard (`1-3` slots, `WASD`/`Arrows`, `Space`/`Enter`)
+- Simultaneous horizontal and vertical cross-line clears with progressive streak multipliers
+- 25 polyomino shapes with automatic tray refill upon exhaustion
+- Endless mode with persistent auto-save and seamless resume
+
 ---
 
 ## Quick Start
@@ -103,6 +112,7 @@ Or run any game standalone directly:
 .\games\invaders\invaders.exe
 .\games\sudoku\sudoku.exe
 .\games\breaker\breaker.exe
+.\games\block\block.exe
 ```
 
 ---

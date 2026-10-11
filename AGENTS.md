@@ -45,10 +45,16 @@ terminal-arcade/
 │   │   ├── test_sudoku.c       # Unit test suite
 │   │   ├── Makefile            # Standalone build pipeline
 │   │   └── README.md           # Game guide
-│   └── breaker/                # Neon Balls Bricks Breaker with mouse aim & auto-save
+│   ├── breaker/                # Neon Balls Bricks Breaker with mouse aim & auto-save
+│   │   ├── include/            # config.h, game.h, input.h, platform.h, render.h
+│   │   ├── src/                # game.c, input.c, main.c, platform.c, render.c
+│   │   ├── test_breaker.c      # Unit test suite
+│   │   ├── Makefile            # Standalone build pipeline
+│   │   └── README.md           # Game guide
+│   └── block/                  # Classic 10x10 Wood Block Puzzle with mouse & auto-save
 │       ├── include/            # config.h, game.h, input.h, platform.h, render.h
 │       ├── src/                # game.c, input.c, main.c, platform.c, render.c
-│       ├── test_breaker.c      # Unit test suite
+│       ├── test_block.c        # Unit test suite
 │       ├── Makefile            # Standalone build pipeline
 │       └── README.md           # Game guide
 ├── Makefile                    # Master build & test pipeline
@@ -83,7 +89,7 @@ To add any new game (e.g. `breakout`, `pong`, `sokoban`):
   ```bash
   make
   ```
-  Produces `arcade.exe`, `games/tetris/tetris.exe`, `games/2048/2048.exe`, `games/minesweeper/minesweeper.exe`, `games/snake/snake.exe`, `games/invaders/invaders.exe`, `games/sudoku/sudoku.exe`, and `games/breaker/breaker.exe`.
+  Produces `arcade.exe`, `games/tetris/tetris.exe`, `games/2048/2048.exe`, `games/minesweeper/minesweeper.exe`, `games/snake/snake.exe`, `games/invaders/invaders.exe`, `games/sudoku/sudoku.exe`, `games/breaker/breaker.exe`, and `games/block/block.exe`.
 
 - **Run Full Automated Test Suite**:
   ```bash
@@ -100,6 +106,7 @@ To add any new game (e.g. `breakout`, `pong`, `sokoban`):
   make invaders
   make sudoku
   make breaker
+  make block
   ```
 
 - **Clean Entire Workspace**:
@@ -114,7 +121,7 @@ To add any new game (e.g. `breakout`, `pong`, `sokoban`):
 ### Arcade Hub Launcher (`arcade.exe`)
 - `↑` / `↓` / `W` / `S`: Navigate game selection
 - `Enter` / `Space`: Launch selected game
-- `1` - `7`: Quick select and launch
+- `1` - `8`: Quick select and launch
 - `Q`: Quit arcade
 
 ### Tetris (`games/tetris/tetris.exe`)
@@ -170,5 +177,15 @@ To add any new game (e.g. `breakout`, `pong`, `sokoban`):
 - `Left Click` / `Space` / `Enter`: Launch ball swarm
 - `Right Click` / `F` / Hold `Space`: Toggle 3x Fast-Forward Turbo mode
 - `←` / `→` or `A` / `D`: Adjust aim angle via keyboard
+- `R`: Start fresh endless run
+- `Q` / `Esc`: Auto-save progress and return to Arcade Hub
+
+### Classic Wood Block Puzzle (`games/block/block.exe`)
+- `Mouse Move`: Move cursor / view live ghost placement preview
+- `Left Click`: Pick piece from bottom tray or place on grid cell
+- `1` / `2` / `3`: Select piece from Tray Slot 1, 2, or 3
+- `←` `→` `↑` `↓` / `WASD` / `HJKL`: Move placement cursor across 10×10 grid
+- `Space` / `Enter`: Place currently selected piece at cursor
+- `Tab` / `0` / `Esc`: Deselect active piece
 - `R`: Start fresh endless run
 - `Q` / `Esc`: Auto-save progress and return to Arcade Hub
