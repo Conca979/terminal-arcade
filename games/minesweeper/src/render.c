@@ -36,14 +36,26 @@ void render_frame(const GameState *game, unsigned long long current_time) {
   static char buffer[32768];
   int offset = 0;
 
-  offset += snprintf(buffer + offset, sizeof(buffer) - offset, "\033[H");
+  static int prev_diff = -1;
+  static int prev_rows = -1;
+  static int prev_cols = -1;
 
-  // Title Banner
+  // Clear entire screen on difficulty / board dimension change to prevent artifact overlap
+  if ((int)game->difficulty != prev_diff || game->rows != prev_rows || game->cols != prev_cols) {
+    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "\033[2J\033[H");
+    prev_diff = (int)game->difficulty;
+    prev_rows = game->rows;
+    prev_cols = game->cols;
+  } else {
+    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "\033[H");
+  }
+
+  // Title Banner (strictly 61 chars wide: 2 + 1 + 59 + 1)
   offset += snprintf(
     buffer + offset, sizeof(buffer) - offset,
-    "  %s╔═══════════════════════════════════════════════════════════╗%s\n"
-    "  %s║%s                %sM I N E S W E E P E R   C L I%s                %s║%s\n"
-    "  %s╚═══════════════════════════════════════════════════════════╝%s\n\n",
+    "  %s╔═══════════════════════════════════════════════════════════╗%s\033[K\n"
+    "  %s║%s                  %sM I N E S W E E P E R   C L I%s                  %s║%s\033[K\n"
+    "  %s╚═══════════════════════════════════════════════════════════╝%s\033[K\n\033[K\n",
     COLOR_BORDER, COLOR_RESET,
     COLOR_BORDER, COLOR_RESET, COLOR_TITLE, COLOR_RESET, COLOR_BORDER, COLOR_RESET,
     COLOR_BORDER, COLOR_RESET
@@ -65,7 +77,7 @@ void render_frame(const GameState *game, unsigned long long current_time) {
   const char *diff_names[3] = {"BEGINNER", "INTERMEDIATE", "EXPERT"};
   offset += snprintf(
     buffer + offset, sizeof(buffer) - offset,
-    "  %sMINES:%s %s%03d%s   %sTIME:%s %s%03ds%s   %sBEST:%s %s%s%s   %sDIFF:%s \033[1;38;2;0;220;220m[%s]\033[0m\n\n",
+    "  %sMINES:%s %s%03d%s   %sTIME:%s %s%03ds%s   %sBEST:%s %s%s%s   %sDIFF:%s \033[1;38;2;0;220;220m[%s]\033[0m\033[K\n\033[K\n",
     COLOR_LABEL, COLOR_RESET, "\033[1;31m", mines_left, COLOR_RESET,
     COLOR_LABEL, COLOR_RESET, COLOR_VALUE, elapsed, COLOR_RESET,
     COLOR_LABEL, COLOR_RESET, COLOR_VALUE, best_str, COLOR_RESET,
@@ -77,7 +89,7 @@ void render_frame(const GameState *game, unsigned long long current_time) {
   for (int c = 0; c < game->cols; c++) {
     offset += snprintf(buffer + offset, sizeof(buffer) - offset, "──");
   }
-  offset += snprintf(buffer + offset, sizeof(buffer) - offset, "─┐%s\n", COLOR_RESET);
+  offset += snprintf(buffer + offset, sizeof(buffer) - offset, "─┐%s\033[K\n", COLOR_RESET);
 
   // Grid rows
   for (int r = 0; r < game->rows; r++) {
@@ -111,7 +123,7 @@ void render_frame(const GameState *game, unsigned long long current_time) {
       }
     }
 
-    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "%s│%s\n", COLOR_BORDER, COLOR_RESET);
+    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "%s│%s\033[K\n", COLOR_BORDER, COLOR_RESET);
   }
 
   // Board Bottom Border
@@ -119,35 +131,36 @@ void render_frame(const GameState *game, unsigned long long current_time) {
   for (int c = 0; c < game->cols; c++) {
     offset += snprintf(buffer + offset, sizeof(buffer) - offset, "──");
   }
-  offset += snprintf(buffer + offset, sizeof(buffer) - offset, "─┘%s\n\n", COLOR_RESET);
+  offset += snprintf(buffer + offset, sizeof(buffer) - offset, "─┘%s\033[K\n\033[K\n", COLOR_RESET);
 
   // Status Modals
   if (game->state == STATE_WON) {
     offset += snprintf(
       buffer + offset, sizeof(buffer) - offset,
-      "  \033[1;38;2;255;215;0m╔═══════════════════════════════════╗\033[0m\n"
-      "  \033[1;38;2;255;215;0m║    ★ ★ ★  YOU CLEARED IT! ★ ★ ★   ║\033[0m\n"
-      "  \033[1;38;2;255;215;0m║   Time: %03ds    [R] Play Again    ║\033[0m\n"
-      "  \033[1;38;2;255;215;0m╚═══════════════════════════════════╝\033[0m\n\n",
+      "  \033[1;38;2;255;215;0m╔═══════════════════════════════════╗\033[0m\033[K\n"
+      "  \033[1;38;2;255;215;0m║    ★ ★ ★  YOU CLEARED IT! ★ ★ ★   ║\033[0m\033[K\n"
+      "  \033[1;38;2;255;215;0m║   Time: %03ds    [R] Play Again    ║\033[0m\033[K\n"
+      "  \033[1;38;2;255;215;0m╚═══════════════════════════════════╝\033[0m\033[K\n\033[K\n",
       elapsed
     );
   } else if (game->state == STATE_GAME_OVER) {
     offset += snprintf(
       buffer + offset, sizeof(buffer) - offset,
-      "  \033[1;38;2;255;70;70m╔═══════════════════════════════════╗\033[0m\n"
-      "  \033[1;38;2;255;70;70m║       B O O M !  GAME OVER        ║\033[0m\n"
-      "  \033[1;38;2;255;70;70m║     [R] Try Again    [Q] Quit     ║\033[0m\n"
-      "  \033[1;38;2;255;70;70m╚═══════════════════════════════════╝\033[0m\n\n"
+      "  \033[1;38;2;255;70;70m╔═══════════════════════════════════╗\033[0m\033[K\n"
+      "  \033[1;38;2;255;70;70m║       B O O M !  GAME OVER        ║\033[0m\033[K\n"
+      "  \033[1;38;2;255;70;70m║     [R] Try Again    [Q] Quit     ║\033[0m\033[K\n"
+      "  \033[1;38;2;255;70;70m╚═══════════════════════════════════╝\033[0m\033[K\n\033[K\n"
     );
   }
 
   // Controls Legend
   offset += snprintf(
     buffer + offset, sizeof(buffer) - offset,
-    "  %sControls:%s\n"
-    "    %s[Arrows / WASD]%s Move Cursor    %s[Space / Enter]%s Reveal Cell\n"
-    "    %s[F]%s             Flag Mine      %s[C]%s             Chord Reveal\n"
-    "    %s[1 / 2 / 3]%s     Difficulty     %s[R]%s Reset       %s[Q]%s Quit\n",
+    "  %sControls:%s\033[K\n"
+    "    %s[Arrows / WASD]%s Move Cursor    %s[Space / Enter]%s Reveal Cell\033[K\n"
+    "    %s[F]%s             Flag Mine      %s[C]%s             Chord Reveal\033[K\n"
+    "    %s[1 / 2 / 3]%s     Difficulty     %s[R]%s Reset       %s[Q]%s Quit\033[K\n"
+    "\033[J",
     COLOR_LABEL, COLOR_RESET,
     COLOR_TITLE, COLOR_HINT, COLOR_TITLE, COLOR_HINT,
     COLOR_TITLE, COLOR_HINT, COLOR_TITLE, COLOR_HINT,
