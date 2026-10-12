@@ -84,6 +84,13 @@ static const GameEntry GAMES[] = {
     "games\\pong\\pong.exe",
     "pong",
     "high_score"
+  },
+  {
+    "Typing Defense CLI",
+    "Cyber citadel typing shmup with 5,800+ words",
+    "games\\typing\\typing.exe",
+    "typing",
+    "high_score"
   }
 };
 
@@ -122,6 +129,13 @@ static void draw_menu(int selected) {
           snprintf(score_badge, sizeof(score_badge), "[Best: %ds]", score);
         } else if (strcmp(GAMES[i].score_section, "pong") == 0) {
           snprintf(score_badge, sizeof(score_badge), "[Rally: %d]", score);
+        } else if (strcmp(GAMES[i].score_section, "typing") == 0) {
+          int wpm = arcade_score_get("typing", "max_wpm");
+          if (wpm > 0) {
+            snprintf(score_badge, sizeof(score_badge), "[%d | %dWPM]", score, wpm);
+          } else {
+            snprintf(score_badge, sizeof(score_badge), "[Best: %d]", score);
+          }
         } else {
           snprintf(score_badge, sizeof(score_badge), "[Best: %d]", score);
         }

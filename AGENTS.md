@@ -59,10 +59,16 @@ terminal-arcade/
 │   │   ├── test_block.c        # Unit test suite
 │   │   ├── Makefile            # Standalone build pipeline
 │   │   └── README.md           # Game guide
-│   └── pong/                   # Classic Pong (Player vs CPU) with retro scoreboard & AI
+│   ├── pong/                   # Classic Pong (Player vs CPU) with retro scoreboard & AI
+│   │   ├── include/            # config.h, game.h, input.h, platform.h, render.h
+│   │   ├── src/                # game.c, input.c, main.c, platform.c, render.c
+│   │   ├── test_pong.c         # Unit test suite
+│   │   ├── Makefile            # Standalone build pipeline
+│   │   └── README.md           # Game guide
+│   └── typing/                 # Cyber Citadel Typing Defense with 5,800+ English words
 │       ├── include/            # config.h, game.h, input.h, platform.h, render.h
 │       ├── src/                # game.c, input.c, main.c, platform.c, render.c
-│       ├── test_pong.c         # Unit test suite
+│       ├── test_typing.c       # Unit test suite
 │       ├── Makefile            # Standalone build pipeline
 │       └── README.md           # Game guide
 ├── Makefile                    # Master build & test pipeline
@@ -97,7 +103,7 @@ To add any new game (e.g. `breakout`, `pong`, `sokoban`):
   ```bash
   make
   ```
-  Produces `arcade.exe`, `games/tetris/tetris.exe`, `games/2048/2048.exe`, `games/minesweeper/minesweeper.exe`, `games/snake/snake.exe`, `games/invaders/invaders.exe`, `games/sudoku/sudoku.exe`, `games/breaker/breaker.exe`, `games/block/block.exe`, and `games/pong/pong.exe`.
+  Produces `arcade.exe`, `games/tetris/tetris.exe`, `games/2048/2048.exe`, `games/minesweeper/minesweeper.exe`, `games/snake/snake.exe`, `games/invaders/invaders.exe`, `games/sudoku/sudoku.exe`, `games/breaker/breaker.exe`, `games/block/block.exe`, `games/pong/pong.exe`, and `games/typing/typing.exe`.
 
 - **Run Full Automated Test Suite**:
   ```bash
@@ -116,6 +122,7 @@ To add any new game (e.g. `breakout`, `pong`, `sokoban`):
   make breaker
   make block
   make pong
+  make typing
   ```
 
 - **Clean Entire Workspace**:
@@ -207,3 +214,11 @@ To add any new game (e.g. `breakout`, `pong`, `sokoban`):
 - `Tab` / `M`: Cycle AI difficulty (Easy, Medium, Hard)
 - `R`: Reset match (starts fresh game)
 - `Q` / `Esc`: Auto-save match progress and return to Arcade Hub
+
+### Cyber Citadel Typing Defense (`games/typing/typing.exe`)
+- `A` – `Z`: Type English words to lock onto and destroy incoming missiles
+- `Backspace` / `Del`: Unlock / cancel current locked target
+- `Space` / `Enter`: Skip wave announcement / Restart mission on Game Over
+- `P` / `Esc`: Pause / resume mission
+- `R`: Reset mission (starts fresh game)
+- `Q` / `Esc`: Auto-save mission progress and return to Arcade Hub

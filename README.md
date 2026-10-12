@@ -78,6 +78,21 @@ Classic 10×10 wooden tile puzzle featuring:
 - 25 polyomino shapes with automatic tray refill upon exhaustion
 - Endless mode with persistent auto-save and seamless resume
 
+### 9. 🏓 Classic Pong (`games/pong/`)
+Retro table tennis arcade game featuring:
+- High-speed 60 FPS physics with angle deflection and velocity acceleration
+- Player vs. CPU with 3 selectable AI difficulty modes (Easy, Medium, Hard)
+- First-to-11 championship match rules with retro segmented scoreboard
+- Persistent auto-save system and high scores tracking
+
+### 10. ⌨️ Cyber Citadel Typing Defense (`games/typing/`)
+Fast-paced space defense typing shooter featuring:
+- 5,800+ English word vocabulary scaled dynamically across waves
+- 4 Enemy variants: Normal drones, Fast interceptors, Tank dreadnoughts, and EMP bombs
+- Citadel particle explosions, laser cannon targeting, and combo multipliers
+- Live Words Per Minute (WPM) and typing accuracy metrics
+- Persistent auto-save system and centralized score tracking
+
 ---
 
 ## Quick Start
@@ -113,6 +128,8 @@ Or run any game standalone directly:
 .\games\sudoku\sudoku.exe
 .\games\breaker\breaker.exe
 .\games\block\block.exe
+.\games\pong\pong.exe
+.\games\typing\typing.exe
 ```
 
 ---
