@@ -77,6 +77,13 @@ static const GameEntry GAMES[] = {
     "games\\block\\block.exe",
     "block",
     "high_score"
+  },
+  {
+    "Classic Pong CLI",
+    "Player vs CPU with retro scoreboard & AI",
+    "games\\pong\\pong.exe",
+    "pong",
+    "high_score"
   }
 };
 
@@ -113,6 +120,8 @@ static void draw_menu(int selected) {
       if (score > 0) {
         if (strcmp(GAMES[i].score_section, "minesweeper") == 0) {
           snprintf(score_badge, sizeof(score_badge), "[Best: %ds]", score);
+        } else if (strcmp(GAMES[i].score_section, "pong") == 0) {
+          snprintf(score_badge, sizeof(score_badge), "[Rally: %d]", score);
         } else {
           snprintf(score_badge, sizeof(score_badge), "[Best: %d]", score);
         }
