@@ -36,6 +36,7 @@ void platform_init(void) {
     GetConsoleMode(h_stdin, &original_in_mode);
     DWORD new_in_mode = original_in_mode & ~(ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT);
     SetConsoleMode(h_stdin, new_in_mode);
+    FlushConsoleInputBuffer(h_stdin);
   }
 
   original_cp = GetConsoleOutputCP();

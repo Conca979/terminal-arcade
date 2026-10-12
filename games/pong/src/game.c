@@ -30,7 +30,7 @@ void game_delete_save(void) {
 }
 
 void game_save(const GameState *game) {
-  if (game->state == STATE_GAME_OVER) return;
+  if (game->state == STATE_GAME_OVER || game->state == STATE_EXIT) return;
 
   FILE *f = fopen(get_save_path(), "wb");
   if (!f) return;
@@ -46,7 +46,7 @@ void game_save(const GameState *game) {
   fwrite(&game->max_rally, sizeof(int), 1, f);
   int diff = (int)game->difficulty;
   fwrite(&diff, sizeof(int), 1, f);
-  int st = (int)game->state;
+  int st = (int)STATE_SERVE; // Always persist resumable state as STATE_SERVE
   fwrite(&st, sizeof(int), 1, f);
 
   fwrite(&game->player.y, sizeof(float), 1, f);
@@ -89,8 +89,9 @@ bool game_load(GameState *game) {
     fclose(f);
     return false;
   }
+  (void)st;
   game->difficulty = (AiDifficulty)diff;
-  game->state = (st == STATE_GAME_OVER) ? STATE_SERVE : (PlayState)st;
+  game->state = STATE_SERVE; // Always resume ready to serve
 
   if (fread(&game->player.y, sizeof(float), 1, f) != 1 ||
       fread(&game->cpu.y, sizeof(float), 1, f) != 1 ||
@@ -217,7 +218,7 @@ void game_handle_action(GameState *game, GameAction action) {
       break;
 
     case ACT_QUIT:
-      if (game->state != STATE_GAME_OVER) {
+      if (game->state != STATE_GAME_OVER && game->state != STATE_EXIT) {
         game_save(game);
       }
       game->state = STATE_EXIT;
@@ -252,7 +253,7 @@ void game_update(GameState *game, float dt) {
     }
   }
 
-  // Handle Point Scored / Serve countdown
+  // Handle Point Scored countdown
   if (game->state == STATE_POINT_SCORED) {
     game->serve_timer_ms -= (int)(dt * 1000.0f);
     if (game->serve_timer_ms <= 0) {
@@ -262,7 +263,13 @@ void game_update(GameState *game, float dt) {
     return;
   }
 
+  // Handle Serve state (auto-serve after 2.5s if player has not pressed Space/Enter)
   if (game->state == STATE_SERVE) {
+    game->serve_timer_ms += (int)(dt * 1000.0f);
+    if (game->serve_timer_ms >= 2500) {
+      int dir = (game->scorer == 2) ? -1 : 1;
+      game_serve_ball(game, dir);
+    }
     return;
   }
 

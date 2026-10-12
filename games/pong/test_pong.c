@@ -164,8 +164,33 @@ static void test_auto_save_and_resume(void) {
   assert(fabsf(g2.ball.x - 34.0f) < 0.01f);
   assert(fabsf(g2.ball.y - 8.5f) < 0.01f);
 
+  assert(g2.state == STATE_SERVE);
+
   game_delete_save();
   printf("[PASS] test_auto_save_and_resume\n");
+}
+
+static void test_quit_does_not_corrupt_save(void) {
+  game_delete_save();
+  GameState g;
+  game_init(&g);
+  g.player_score = 2;
+  g.cpu_score = 1;
+  g.state = STATE_PLAYING;
+
+  // Simulate user pressing ACT_QUIT
+  game_handle_action(&g, ACT_QUIT);
+  assert(g.state == STATE_EXIT);
+
+  // Next instance loading the save should resume cleanly in STATE_SERVE, not STATE_EXIT
+  GameState g_resumed;
+  game_init(&g_resumed);
+  assert(g_resumed.state == STATE_SERVE);
+  assert(g_resumed.player_score == 2);
+  assert(g_resumed.cpu_score == 1);
+
+  game_delete_save();
+  printf("[PASS] test_quit_does_not_corrupt_save\n");
 }
 
 int main(void) {
@@ -178,6 +203,7 @@ int main(void) {
   test_cpu_ai_tracking();
   test_scoring_and_match_win();
   test_auto_save_and_resume();
+  test_quit_does_not_corrupt_save();
   printf("All Pong tests PASSED successfully!\n");
   return 0;
 }

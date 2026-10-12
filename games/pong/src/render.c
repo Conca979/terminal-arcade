@@ -233,10 +233,12 @@ void render_frame(const GameState *game) {
   else if (game->difficulty == DIFF_HARD) diff_str = "HARD";
 
   if (game->state == STATE_SERVE) {
+    int remaining = 3 - (game->serve_timer_ms / 1000);
+    if (remaining < 1) remaining = 1;
     offset += snprintf(
       buffer + offset, sizeof(buffer) - offset,
-      "  %s               >>> PRESS SPACE OR ENTER TO SERVE BALL <<<               %s\n",
-      COLOR_BANNER, COLOR_RESET
+      "  %s      >>> PRESS [SPACE / ENTER] TO SERVE (AUTO-SERVE IN %ds) <<<        %s\n",
+      COLOR_BANNER, remaining, COLOR_RESET
     );
   } else if (game->state == STATE_PAUSED) {
     offset += snprintf(

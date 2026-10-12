@@ -26,7 +26,7 @@ int main(void) {
     last_frame_time = frame_start;
 
     // Continuous key polling for responsive paddle control
-    if (game.state == STATE_PLAYING) {
+    if (game.state == STATE_PLAYING || game.state == STATE_SERVE) {
       input_poll_continuous_movement(&game.player.vy);
     } else {
       game.player.vy = 0.0f;
@@ -52,7 +52,7 @@ int main(void) {
     }
   }
 
-  if (game.state != STATE_GAME_OVER) {
+  if (game.state != STATE_GAME_OVER && game.state != STATE_EXIT) {
     game_save(&game);
   }
 
