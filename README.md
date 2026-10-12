@@ -93,6 +93,15 @@ Fast-paced space defense typing shooter featuring:
 - Live Words Per Minute (WPM) and typing accuracy metrics
 - Persistent auto-save system and centralized score tracking
 
+### 11. 🟩 Wordle CLI (`games/wordle/`)
+Classic 5-letter word puzzle featuring:
+- Standard Wordle color clues: Green (Correct), Yellow (Present), and Gray (Absent)
+- Two-pass duplicate letter evaluation matching official rules
+- 14,800+ word valid dictionary and 476 curated secret solution words
+- Live statistics panel with win rate, current/best streak, and 6-bar guess distribution
+- QWERTY virtual keyboard clue tracker
+- Persistent auto-save system and centralized high score tracking
+
 ---
 
 ## Quick Start
@@ -130,6 +139,7 @@ Or run any game standalone directly:
 .\games\block\block.exe
 .\games\pong\pong.exe
 .\games\typing\typing.exe
+.\games\wordle\wordle.exe
 ```
 
 ---

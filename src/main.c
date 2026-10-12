@@ -91,6 +91,13 @@ static const GameEntry GAMES[] = {
     "games\\typing\\typing.exe",
     "typing",
     "high_score"
+  },
+  {
+    "Wordle CLI",
+    "Classic 5-letter word puzzle with live stats",
+    "games\\wordle\\wordle.exe",
+    "wordle",
+    "games_won"
   }
 };
 
@@ -121,7 +128,7 @@ static void draw_menu(int selected) {
   printf("  %sChoose a game to play:%s\n\n", COLOR_ACCENT, COLOR_RESET);
 
   for (int i = 0; i < GAME_COUNT; i++) {
-    char score_badge[32] = "";
+    char score_badge[64] = "";
     if (GAMES[i].score_section && GAMES[i].score_key) {
       int score = arcade_score_get(GAMES[i].score_section, GAMES[i].score_key);
       if (score > 0) {
@@ -135,6 +142,13 @@ static void draw_menu(int selected) {
             snprintf(score_badge, sizeof(score_badge), "[%d | %dWPM]", score, wpm);
           } else {
             snprintf(score_badge, sizeof(score_badge), "[Best: %d]", score);
+          }
+        } else if (strcmp(GAMES[i].score_section, "wordle") == 0) {
+          int streak = arcade_score_get("wordle", "win_streak");
+          if (streak > 0) {
+            snprintf(score_badge, sizeof(score_badge), "[Won: %d|🔥%d]", score, streak);
+          } else {
+            snprintf(score_badge, sizeof(score_badge), "[Won: %d]", score);
           }
         } else {
           snprintf(score_badge, sizeof(score_badge), "[Best: %d]", score);

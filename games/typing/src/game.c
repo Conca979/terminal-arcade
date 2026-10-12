@@ -23,22 +23,27 @@ static const char *FALLBACK_WORDS[] = {
 static const int FALLBACK_COUNT = sizeof(FALLBACK_WORDS) / sizeof(FALLBACK_WORDS[0]);
 
 static const char *get_words_path(void) {
-  FILE *f = fopen("words.txt", "r");
+  FILE *f = fopen("games/typing/words.txt", "r");
+  if (f) {
+    fclose(f);
+    return "games/typing/words.txt";
+  }
+  f = fopen("words.txt", "r");
   if (f) {
     fclose(f);
     return "words.txt";
   }
-  f = fopen("../../words.txt", "r");
+  f = fopen("../games/typing/words.txt", "r");
   if (f) {
     fclose(f);
-    return "../../words.txt";
+    return "../games/typing/words.txt";
   }
-  f = fopen("../words.txt", "r");
+  f = fopen("../../games/typing/words.txt", "r");
   if (f) {
     fclose(f);
-    return "../words.txt";
+    return "../../games/typing/words.txt";
   }
-  return "words.txt";
+  return "games/typing/words.txt";
 }
 
 static void safe_word_copy(char *dest, const char *src, size_t dest_size) {

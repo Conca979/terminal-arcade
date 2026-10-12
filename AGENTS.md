@@ -65,10 +65,19 @@ terminal-arcade/
 │   │   ├── test_pong.c         # Unit test suite
 │   │   ├── Makefile            # Standalone build pipeline
 │   │   └── README.md           # Game guide
-│   └── typing/                 # Cyber Citadel Typing Defense with 5,800+ English words
+│   ├── typing/                 # Cyber Citadel Typing Defense with 5,800+ English words
+│   │   ├── include/            # config.h, game.h, input.h, platform.h, render.h
+│   │   ├── src/                # game.c, input.c, main.c, platform.c, render.c
+│   │   ├── test_typing.c       # Unit test suite
+│   │   ├── words.txt           # 5,800+ English words dictionary
+│   │   ├── Makefile            # Standalone build pipeline
+│   │   └── README.md           # Game guide
+│   └── wordle/                 # Classic 5-Letter Wordle with live stats & keyboard tracker
 │       ├── include/            # config.h, game.h, input.h, platform.h, render.h
 │       ├── src/                # game.c, input.c, main.c, platform.c, render.c
-│       ├── test_typing.c       # Unit test suite
+│       ├── solution_words.c    # Curated hidden solution words (476 words)
+│       ├── valid-wordle-words.txt # Comprehensive valid guess dictionary (14,800+ words)
+│       ├── test_wordle.c       # Unit test suite
 │       ├── Makefile            # Standalone build pipeline
 │       └── README.md           # Game guide
 ├── Makefile                    # Master build & test pipeline
@@ -103,7 +112,7 @@ To add any new game (e.g. `breakout`, `pong`, `sokoban`):
   ```bash
   make
   ```
-  Produces `arcade.exe`, `games/tetris/tetris.exe`, `games/2048/2048.exe`, `games/minesweeper/minesweeper.exe`, `games/snake/snake.exe`, `games/invaders/invaders.exe`, `games/sudoku/sudoku.exe`, `games/breaker/breaker.exe`, `games/block/block.exe`, `games/pong/pong.exe`, and `games/typing/typing.exe`.
+  Produces `arcade.exe`, `games/tetris/tetris.exe`, `games/2048/2048.exe`, `games/minesweeper/minesweeper.exe`, `games/snake/snake.exe`, `games/invaders/invaders.exe`, `games/sudoku/sudoku.exe`, `games/breaker/breaker.exe`, `games/block/block.exe`, `games/pong/pong.exe`, `games/typing/typing.exe`, and `games/wordle/wordle.exe`.
 
 - **Run Full Automated Test Suite**:
   ```bash
@@ -123,6 +132,7 @@ To add any new game (e.g. `breakout`, `pong`, `sokoban`):
   make block
   make pong
   make typing
+  make wordle
   ```
 
 - **Clean Entire Workspace**:
@@ -222,3 +232,11 @@ To add any new game (e.g. `breakout`, `pong`, `sokoban`):
 - `P` / `Esc`: Pause / resume mission
 - `R`: Reset mission (starts fresh game)
 - `Q` / `Esc`: Auto-save mission progress and return to Arcade Hub
+
+### Wordle CLI (`games/wordle/wordle.exe`)
+- `A` – `Z`: Type 5-letter guess words
+- `Backspace` / `Del`: Delete last letter
+- `Enter`: Submit guess / Play next round on Game Over
+- `Space`: Play next round on Game Over
+- `R` / `Ctrl+R`: Start fresh puzzle
+- `Esc` / `Ctrl+Q`: Auto-save active game & return to Arcade Hub
