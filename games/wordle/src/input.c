@@ -13,10 +13,18 @@ GameAction input_get_action(PlayState state, char *out_char) {
 
   int ch = _getch();
 
-  // Handle special prefix keys
+  // Handle special prefix keys (Delete key, Numpad Enter, Arrows)
   if (ch == 0 || ch == 224) {
     int ext = _getch();
-    (void)ext;
+    if (ext == 83) { // Del key
+      return ACT_BACKSPACE;
+    }
+    if (ext == 13 || ext == 10) { // Numpad Enter
+      if (state == STATE_PLAYING) {
+        return ACT_SUBMIT;
+      }
+      return ACT_RESTART;
+    }
     return ACT_NONE;
   }
 

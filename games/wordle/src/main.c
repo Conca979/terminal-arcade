@@ -28,8 +28,12 @@ int main(void) {
     char letter = '\0';
     GameAction action;
     while ((action = input_get_action(game.state, &letter)) != ACT_NONE) {
+      PlayState prev_state = game.state;
       game_handle_action(&game, action, letter);
       if (game.state == STATE_EXIT) {
+        break;
+      }
+      if (prev_state == STATE_PLAYING && (game.state == STATE_WON || game.state == STATE_LOST)) {
         break;
       }
     }

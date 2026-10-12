@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "game.h"
+#include "render.h"
 
 static void test_initialization_and_dictionary(void) {
   game_delete_save();
@@ -237,6 +238,47 @@ static void test_auto_save_and_resume(void) {
   printf("[PASS] test_auto_save_and_resume\n");
 }
 
+static void test_render_frame_no_stack_corruption(void) {
+  GameState game;
+  game_init(&game);
+  game_new_round(&game);
+
+  // Set up stats with maximum distribution bar length (18 blocks)
+  game.games_played = 20;
+  game.games_won = 18;
+  game.current_streak = 5;
+  game.max_streak = 10;
+  game.guess_distribution[0] = 18;
+  game.guess_distribution[1] = 12;
+  game.guess_distribution[2] = 8;
+  game.guess_distribution[3] = 4;
+  game.guess_distribution[4] = 2;
+  game.guess_distribution[5] = 1;
+
+  // Add active typed letters
+  game.guesses[0].letters[0] = 'C';
+  game.guesses[0].status[0] = TILE_TYPING;
+  game.guesses[0].letters[1] = 'R';
+  game.guesses[0].status[1] = TILE_TYPING;
+  game.current_letter_idx = 2;
+
+  volatile int canary = 0x12345678;
+
+  // Render multiple frames
+  for (int f = 0; f < 5; f++) {
+    render_frame(&game);
+  }
+
+  // Verify memory integrity
+  assert(canary == 0x12345678);
+  assert(game.guess_distribution[0] == 18);
+  assert(game.guess_distribution[1] == 12);
+  assert(game.current_letter_idx == 2);
+  assert(game.guesses[0].letters[0] == 'C');
+
+  printf("[PASS] test_render_frame_no_stack_corruption\n");
+}
+
 int main(void) {
   srand(42);
   printf("Starting Wordle Logic & Dictionary Tests...\n");
@@ -248,6 +290,7 @@ int main(void) {
   test_win_condition();
   test_loss_condition();
   test_auto_save_and_resume();
+  test_render_frame_no_stack_corruption();
   printf("All Wordle tests PASSED successfully!\n");
   return 0;
 }

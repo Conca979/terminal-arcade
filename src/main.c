@@ -170,7 +170,7 @@ static void draw_menu(int selected) {
   printf("\n      [Q] \033[1;37mQuit Arcade\033[0m\n\n");
   printf("  %sControls:%s\n", COLOR_BORDER, COLOR_RESET);
   printf("    %s[↑ / ↓ / W / S]%s Navigate    %s[Enter / Space]%s Launch Game\n", COLOR_DIM, COLOR_RESET, COLOR_DIM, COLOR_RESET);
-  printf("    %s[1 - %d]%s        Quick Select %s[Q]%s             Exit\n", COLOR_DIM, GAME_COUNT, COLOR_RESET, COLOR_DIM, COLOR_RESET);
+  printf("    %s[1 - 9]%s         Quick Select %s[Q]%s             Exit\n", COLOR_DIM, COLOR_RESET, COLOR_DIM, COLOR_RESET);
   fflush(stdout);
 }
 
@@ -213,7 +213,7 @@ int main(void) {
       selected = (selected - 1 + GAME_COUNT) % GAME_COUNT;
     } else if (ch == 's' || ch == 'S') {
       selected = (selected + 1) % GAME_COUNT;
-    } else if (ch >= '1' && ch < '1' + GAME_COUNT) {
+    } else if (ch >= '1' && ch <= '9' && (ch - '1') < GAME_COUNT) {
       selected = ch - '1';
       launch_game(GAMES[selected].executable_path);
     } else if (ch == '\r' || ch == '\n' || ch == ' ') {
