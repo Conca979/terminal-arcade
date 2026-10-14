@@ -102,6 +102,15 @@ Classic 5-letter word puzzle featuring:
 - QWERTY virtual keyboard clue tracker
 - Persistent auto-save system and centralized high score tracking
 
+### 12. 🐦 Flappy Bird CLI (`games/flappy/`)
+Authentic retro arcade flight avoider featuring:
+- High-fidelity flight physics with gravity, flap impulses, and velocity clamping
+- Procedurally generated scrolling pipe obstacles with randomized gaps
+- Multi-layer twilight sky with parallax drifting cloud scenery and scrolling soil texture
+- 4-Tier medal achievements: Bronze (10+), Silver (20+), Gold (30+), and Platinum (40+)
+- Compact 21-line rendering viewport for rock-solid flicker-free play on standard terminals
+- Persistent auto-save system and centralized high score tracking
+
 ---
 
 ## Quick Start
@@ -140,6 +149,7 @@ Or run any game standalone directly:
 .\games\pong\pong.exe
 .\games\typing\typing.exe
 .\games\wordle\wordle.exe
+.\games\flappy\flappy.exe
 ```
 
 ---

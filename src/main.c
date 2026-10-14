@@ -98,6 +98,13 @@ static const GameEntry GAMES[] = {
     "games\\wordle\\wordle.exe",
     "wordle",
     "games_won"
+  },
+  {
+    "Flappy Bird CLI",
+    "Classic pipe avoider with physics & medals",
+    "games\\flappy\\flappy.exe",
+    "flappy",
+    "high_score"
   }
 };
 
@@ -149,6 +156,13 @@ static void draw_menu(int selected) {
             snprintf(score_badge, sizeof(score_badge), "[Won: %d|🔥%d]", score, streak);
           } else {
             snprintf(score_badge, sizeof(score_badge), "[Won: %d]", score);
+          }
+        } else if (strcmp(GAMES[i].score_section, "flappy") == 0) {
+          const char *m = (score >= 40) ? "💎" : (score >= 30) ? "🥇" : (score >= 20) ? "🥈" : (score >= 10) ? "🥉" : "";
+          if (m[0] != '\0') {
+            snprintf(score_badge, sizeof(score_badge), "[Best: %d%s]", score, m);
+          } else {
+            snprintf(score_badge, sizeof(score_badge), "[Best: %d]", score);
           }
         } else {
           snprintf(score_badge, sizeof(score_badge), "[Best: %d]", score);

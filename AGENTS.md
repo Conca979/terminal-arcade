@@ -72,12 +72,18 @@ terminal-arcade/
 │   │   ├── words.txt           # 5,800+ English words dictionary
 │   │   ├── Makefile            # Standalone build pipeline
 │   │   └── README.md           # Game guide
-│   └── wordle/                 # Classic 5-Letter Wordle with live stats & keyboard tracker
+│   ├── wordle/                 # Classic 5-Letter Wordle with live stats & keyboard tracker
+│   │   ├── include/            # config.h, game.h, input.h, platform.h, render.h
+│   │   ├── src/                # game.c, input.c, main.c, platform.c, render.c
+│   │   ├── solution_words.c    # Curated hidden solution words (476 words)
+│   │   ├── valid-wordle-words.txt # Comprehensive valid guess dictionary (14,800+ words)
+│   │   ├── test_wordle.c       # Unit test suite
+│   │   ├── Makefile            # Standalone build pipeline
+│   │   └── README.md           # Game guide
+│   └── flappy/                 # Classic Flappy Bird with flight physics & medals
 │       ├── include/            # config.h, game.h, input.h, platform.h, render.h
 │       ├── src/                # game.c, input.c, main.c, platform.c, render.c
-│       ├── solution_words.c    # Curated hidden solution words (476 words)
-│       ├── valid-wordle-words.txt # Comprehensive valid guess dictionary (14,800+ words)
-│       ├── test_wordle.c       # Unit test suite
+│       ├── test_flappy.c       # Unit test suite
 │       ├── Makefile            # Standalone build pipeline
 │       └── README.md           # Game guide
 ├── Makefile                    # Master build & test pipeline
@@ -112,7 +118,7 @@ To add any new game (e.g. `breakout`, `pong`, `sokoban`):
   ```bash
   make
   ```
-  Produces `arcade.exe`, `games/tetris/tetris.exe`, `games/2048/2048.exe`, `games/minesweeper/minesweeper.exe`, `games/snake/snake.exe`, `games/invaders/invaders.exe`, `games/sudoku/sudoku.exe`, `games/breaker/breaker.exe`, `games/block/block.exe`, `games/pong/pong.exe`, `games/typing/typing.exe`, and `games/wordle/wordle.exe`.
+  Produces `arcade.exe`, `games/tetris/tetris.exe`, `games/2048/2048.exe`, `games/minesweeper/minesweeper.exe`, `games/snake/snake.exe`, `games/invaders/invaders.exe`, `games/sudoku/sudoku.exe`, `games/breaker/breaker.exe`, `games/block/block.exe`, `games/pong/pong.exe`, `games/typing/typing.exe`, `games/wordle/wordle.exe`, and `games/flappy/flappy.exe`.
 
 - **Run Full Automated Test Suite**:
   ```bash
@@ -133,6 +139,7 @@ To add any new game (e.g. `breakout`, `pong`, `sokoban`):
   make pong
   make typing
   make wordle
+  make flappy
   ```
 
 - **Clean Entire Workspace**:
@@ -240,3 +247,9 @@ To add any new game (e.g. `breakout`, `pong`, `sokoban`):
 - `Space`: Play next round on Game Over
 - `R` / `Ctrl+R`: Start fresh puzzle
 - `Esc` / `Ctrl+Q`: Auto-save active game & return to Arcade Hub
+
+### Flappy Bird CLI (`games/flappy/flappy.exe`)
+- `Space` / `W` / `↑` / `Enter`: Flap wings / Start game / Play again on Game Over
+- `P` / `Esc`: Pause / resume flight
+- `R`: Reset run (starts fresh game)
+- `Q` / `Esc`: Auto-save run progress and return to Arcade Hub
