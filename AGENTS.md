@@ -80,10 +80,16 @@ terminal-arcade/
 │   │   ├── test_wordle.c       # Unit test suite
 │   │   ├── Makefile            # Standalone build pipeline
 │   │   └── README.md           # Game guide
-│   └── flappy/                 # Classic Flappy Bird with flight physics & medals
+│   ├── flappy/                 # Classic Flappy Bird with flight physics & medals
+│   │   ├── include/            # config.h, game.h, input.h, platform.h, render.h
+│   │   ├── src/                # game.c, input.c, main.c, platform.c, render.c
+│   │   ├── test_flappy.c       # Unit test suite
+│   │   ├── Makefile            # Standalone build pipeline
+│   │   └── README.md           # Game guide
+│   └── blackjack/              # Classic Casino Blackjack with 6-deck shoe & split
 │       ├── include/            # config.h, game.h, input.h, platform.h, render.h
 │       ├── src/                # game.c, input.c, main.c, platform.c, render.c
-│       ├── test_flappy.c       # Unit test suite
+│       ├── test_blackjack.c    # Unit test suite
 │       ├── Makefile            # Standalone build pipeline
 │       └── README.md           # Game guide
 ├── Makefile                    # Master build & test pipeline
@@ -118,7 +124,7 @@ To add any new game (e.g. `breakout`, `pong`, `sokoban`):
   ```bash
   make
   ```
-  Produces `arcade.exe`, `games/tetris/tetris.exe`, `games/2048/2048.exe`, `games/minesweeper/minesweeper.exe`, `games/snake/snake.exe`, `games/invaders/invaders.exe`, `games/sudoku/sudoku.exe`, `games/breaker/breaker.exe`, `games/block/block.exe`, `games/pong/pong.exe`, `games/typing/typing.exe`, `games/wordle/wordle.exe`, and `games/flappy/flappy.exe`.
+  Produces `arcade.exe`, `games/tetris/tetris.exe`, `games/2048/2048.exe`, `games/minesweeper/minesweeper.exe`, `games/snake/snake.exe`, `games/invaders/invaders.exe`, `games/sudoku/sudoku.exe`, `games/breaker/breaker.exe`, `games/block/block.exe`, `games/pong/pong.exe`, `games/typing/typing.exe`, `games/wordle/wordle.exe`, `games/flappy/flappy.exe`, and `games/blackjack/blackjack.exe`.
 
 - **Run Full Automated Test Suite**:
   ```bash
@@ -140,6 +146,7 @@ To add any new game (e.g. `breakout`, `pong`, `sokoban`):
   make typing
   make wordle
   make flappy
+  make blackjack
   ```
 
 - **Clean Entire Workspace**:
@@ -253,3 +260,23 @@ To add any new game (e.g. `breakout`, `pong`, `sokoban`):
 - `P` / `Esc`: Pause / resume flight
 - `R`: Reset run (starts fresh game)
 - `Q` / `Esc`: Auto-save run progress and return to Arcade Hub
+
+### Blackjack 21 CLI (`games/blackjack/blackjack.exe`)
+- **Betting Phase**:
+  - `↑` / `↓` or `W` / `S`: Adjust bet (±$10)
+  - `1` - `5`: Quick presets ($10, $25, $50, $100, $500)
+  - `A`: All-In
+  - `Space` / `Enter`: Confirm bet & deal cards
+- **Player Turn**:
+  - `H` / `Space`: Hit (draw card)
+  - `S` / `Enter`: Stand (end turn)
+  - `D`: Double Down (double bet, 1 card, stand)
+  - `P` / `Tab`: Split pair into two separate hands
+  - `U`: Late Surrender (reclaim 50% bet)
+- **Insurance**:
+  - `Y` / `I`: Buy insurance (pays 2:1 on dealer Blackjack)
+  - `N` / `Space` / `Enter`: Decline insurance
+- **Round Over / General**:
+  - `Space` / `Enter`: Next hand / Deal
+  - `R`: Reload bankroll to $1,000
+  - `Q` / `Esc`: Auto-save bankroll and return to Arcade Hub

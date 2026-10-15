@@ -105,6 +105,13 @@ static const GameEntry GAMES[] = {
     "games\\flappy\\flappy.exe",
     "flappy",
     "high_score"
+  },
+  {
+    "Blackjack 21",
+    "Casino Blackjack with 6-deck shoe & split",
+    "games\\blackjack\\blackjack.exe",
+    "blackjack",
+    "high_chips"
   }
 };
 
@@ -164,6 +171,8 @@ static void draw_menu(int selected) {
           } else {
             snprintf(score_badge, sizeof(score_badge), "[Best: %d]", score);
           }
+        } else if (strcmp(GAMES[i].score_section, "blackjack") == 0) {
+          snprintf(score_badge, sizeof(score_badge), "[High: $%d]", score);
         } else {
           snprintf(score_badge, sizeof(score_badge), "[Best: %d]", score);
         }
@@ -171,10 +180,10 @@ static void draw_menu(int selected) {
     }
 
     if (i == selected) {
-      printf("    %s > [%d] %-18s %-16s %-44s %s\n",
+      printf("    %s > [%2d] %-18s %-16s %-43s %s\n",
              COLOR_SEL, i + 1, GAMES[i].title, score_badge, GAMES[i].desc, COLOR_RESET);
     } else {
-      printf("      [%d] \033[1;37m%-18s\033[0m %s%-16s%s %s%-44s%s\n",
+      printf("      [%2d] \033[1;37m%-18s\033[0m %s%-16s%s %s%-43s%s\n",
              i + 1, GAMES[i].title,
              COLOR_SCORE, score_badge, COLOR_RESET,
              COLOR_DIM, GAMES[i].desc, COLOR_RESET);

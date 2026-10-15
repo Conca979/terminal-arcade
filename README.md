@@ -111,6 +111,15 @@ Authentic retro arcade flight avoider featuring:
 - Compact 21-line rendering viewport for rock-solid flicker-free play on standard terminals
 - Persistent auto-save system and centralized high score tracking
 
+### 13. ♠️ Blackjack 21 (`games/blackjack/`)
+Classic casino table card game featuring:
+- 6-Deck shoe (312 cards) with Fisher-Yates shuffle and ~75% penetration cut card
+- Dealer rules: Dealer stands on all 17s (hard and soft 17) and hits on 16 or lower
+- Natural 21 Blackjack paying 3:2, Insurance paying 2:1, Double Down, Pair Splitting, and Late Surrender
+- 7×5 ASCII playing cards with vibrant red and cyan-white suits (♠ ♥ ♦ ♣)
+- Interactive chip betting console with quick presets ($10, $25, $50, $100, $500) and All-In
+- Persistent bankroll, peak record chips, and hands won tracking in `arcade_scores.ini`
+
 ---
 
 ## Quick Start
@@ -150,6 +159,7 @@ Or run any game standalone directly:
 .\games\typing\typing.exe
 .\games\wordle\wordle.exe
 .\games\flappy\flappy.exe
+.\games\blackjack\blackjack.exe
 ```
 
 ---

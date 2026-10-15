@@ -1,0 +1,82 @@
+#ifndef CONFIG_BLACKJACK_H
+#define CONFIG_BLACKJACK_H
+
+#define NUM_DECKS 6
+#define CARDS_PER_DECK 52
+#define SHOE_SIZE (NUM_DECKS * CARDS_PER_DECK)
+#define CUT_CARD_THRESHOLD 234 /* 75% penetration of 312 cards */
+
+#define MAX_HAND_CARDS 12
+#define MAX_SPLIT_HANDS 2
+
+#define STARTING_BANKROLL 1000
+#define RELOAD_AMOUNT 500
+#define DEFAULT_BET 25
+#define MIN_BET 10
+#define MAX_BET 10000
+
+typedef enum {
+  SUIT_SPADES = 0,
+  SUIT_HEARTS,
+  SUIT_DIAMONDS,
+  SUIT_CLUBS
+} Suit;
+
+typedef enum {
+  RANK_2 = 2,
+  RANK_3,
+  RANK_4,
+  RANK_5,
+  RANK_6,
+  RANK_7,
+  RANK_8,
+  RANK_9,
+  RANK_10,
+  RANK_J,
+  RANK_Q,
+  RANK_K,
+  RANK_A
+} Rank;
+
+typedef enum {
+  STATE_BETTING = 0,
+  STATE_INSURANCE,
+  STATE_PLAYER_TURN,
+  STATE_DEALER_TURN,
+  STATE_ROUND_OVER,
+  STATE_GAME_OVER
+} RoundState;
+
+typedef enum {
+  RESULT_NONE = 0,
+  RESULT_WIN,
+  RESULT_BLACKJACK,
+  RESULT_LOSE,
+  RESULT_BUST,
+  RESULT_PUSH,
+  RESULT_SURRENDER
+} HandResult;
+
+typedef enum {
+  ACT_NONE = 0,
+  ACT_HIT,
+  ACT_STAND,
+  ACT_DOUBLE,
+  ACT_SPLIT,
+  ACT_SURRENDER,
+  ACT_INSURE_YES,
+  ACT_INSURE_NO,
+  ACT_BET_INC,
+  ACT_BET_DEC,
+  ACT_BET_PRESET_1,
+  ACT_BET_PRESET_2,
+  ACT_BET_PRESET_3,
+  ACT_BET_PRESET_4,
+  ACT_BET_PRESET_5,
+  ACT_BET_ALL_IN,
+  ACT_CONFIRM,
+  ACT_RELOAD,
+  ACT_QUIT
+} GameAction;
+
+#endif /* CONFIG_BLACKJACK_H */
