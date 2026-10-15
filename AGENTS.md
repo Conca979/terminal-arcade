@@ -1,120 +1,112 @@
-# Terminal Arcade in C
+# Terminal Arcade in C — Developer & Agent Architecture Guide
 
-A collection of high-performance, modular terminal games written in C for Windows console environments with 60 FPS flicker-free ANSI color rendering.
-
-## Architecture & Extensible Project Layout
-
-```
-terminal-arcade/
-├── include/
-│   └── scores.h                # Centralized INI score management for all arcade games
-├── src/
-│   └── main.c                  # Master Arcade interactive terminal launcher with live high scores
-├── games/
-│   ├── tetris/                 # Classic Guideline Tetris with SRS & 7-bag
-│   │   ├── include/            # config.h, game.h, input.h, platform.h, render.h
-│   │   ├── src/                # game.c, input.c, main.c, platform.c, render.c
-│   │   ├── test_tetris.c       # Unit test suite
-│   │   ├── Makefile            # Standalone build pipeline
-│   │   └── README.md           # Game guide
-│   ├── 2048/                   # 4x4 sliding tile puzzle with 32-step undo
-│   │   ├── include/            # config.h, game.h, input.h, platform.h, render.h
-│   │   ├── src/                # game.c, input.c, main.c, platform.c, render.c
-│   │   ├── test_2048.c         # Unit test suite
-│   │   ├── Makefile            # Standalone build pipeline
-│   │   └── README.md           # Game guide
-│   ├── minesweeper/            # First-click safe sweeper with chords & timer
-│   │   ├── include/            # config.h, game.h, input.h, platform.h, render.h
-│   │   ├── src/                # game.c, input.c, main.c, platform.c, render.c
-│   │   ├── test_minesweeper.c  # Unit test suite
-│   │   ├── Makefile            # Standalone build pipeline
-│   │   └── README.md           # Game guide
-│   ├── snake/                  # Cyberpunk light-cycle snake with power-ups & buffs
-│   │   ├── include/            # config.h, game.h, input.h, platform.h, render.h
-│   │   ├── src/                # game.c, input.c, main.c, platform.c, render.c
-│   │   ├── test_snake.c        # Unit test suite
-│   │   ├── Makefile            # Standalone build pipeline
-│   │   └── README.md           # Game guide
-│   ├── invaders/               # Classic Space Invaders with bunkers & UFO
-│   │   ├── include/            # config.h, game.h, input.h, platform.h, render.h
-│   │   ├── src/                # game.c, input.c, main.c, platform.c, render.c
-│   │   ├── test_invaders.c     # Unit test suite
-│   │   ├── Makefile            # Standalone build pipeline
-│   │   └── README.md           # Game guide
-│   ├── sudoku/                 # Logic puzzle with notes, conflicts & inspector
-│   │   ├── include/            # config.h, game.h, input.h, platform.h, render.h
-│   │   ├── src/                # game.c, input.c, main.c, platform.c, render.c
-│   │   ├── test_sudoku.c       # Unit test suite
-│   │   ├── Makefile            # Standalone build pipeline
-│   │   └── README.md           # Game guide
-│   ├── breaker/                # Neon Balls Bricks Breaker with mouse aim & auto-save
-│   │   ├── include/            # config.h, game.h, input.h, platform.h, render.h
-│   │   ├── src/                # game.c, input.c, main.c, platform.c, render.c
-│   │   ├── test_breaker.c      # Unit test suite
-│   │   ├── Makefile            # Standalone build pipeline
-│   │   └── README.md           # Game guide
-│   ├── block/                  # Classic 10x10 Wood Block Puzzle with mouse & auto-save
-│   │   ├── include/            # config.h, game.h, input.h, platform.h, render.h
-│   │   ├── src/                # game.c, input.c, main.c, platform.c, render.c
-│   │   ├── test_block.c        # Unit test suite
-│   │   ├── Makefile            # Standalone build pipeline
-│   │   └── README.md           # Game guide
-│   ├── pong/                   # Classic Pong (Player vs CPU) with retro scoreboard & AI
-│   │   ├── include/            # config.h, game.h, input.h, platform.h, render.h
-│   │   ├── src/                # game.c, input.c, main.c, platform.c, render.c
-│   │   ├── test_pong.c         # Unit test suite
-│   │   ├── Makefile            # Standalone build pipeline
-│   │   └── README.md           # Game guide
-│   ├── typing/                 # Cyber Citadel Typing Defense with 5,800+ English words
-│   │   ├── include/            # config.h, game.h, input.h, platform.h, render.h
-│   │   ├── src/                # game.c, input.c, main.c, platform.c, render.c
-│   │   ├── test_typing.c       # Unit test suite
-│   │   ├── words.txt           # 5,800+ English words dictionary
-│   │   ├── Makefile            # Standalone build pipeline
-│   │   └── README.md           # Game guide
-│   ├── wordle/                 # Classic 5-Letter Wordle with live stats & keyboard tracker
-│   │   ├── include/            # config.h, game.h, input.h, platform.h, render.h
-│   │   ├── src/                # game.c, input.c, main.c, platform.c, render.c
-│   │   ├── solution_words.c    # Curated hidden solution words (476 words)
-│   │   ├── valid-wordle-words.txt # Comprehensive valid guess dictionary (14,800+ words)
-│   │   ├── test_wordle.c       # Unit test suite
-│   │   ├── Makefile            # Standalone build pipeline
-│   │   └── README.md           # Game guide
-│   ├── flappy/                 # Classic Flappy Bird with flight physics & medals
-│   │   ├── include/            # config.h, game.h, input.h, platform.h, render.h
-│   │   ├── src/                # game.c, input.c, main.c, platform.c, render.c
-│   │   ├── test_flappy.c       # Unit test suite
-│   │   ├── Makefile            # Standalone build pipeline
-│   │   └── README.md           # Game guide
-│   └── blackjack/              # Classic Casino Blackjack with 6-deck shoe & split
-│       ├── include/            # config.h, game.h, input.h, platform.h, render.h
-│       ├── src/                # game.c, input.c, main.c, platform.c, render.c
-│       ├── test_blackjack.c    # Unit test suite
-│       ├── Makefile            # Standalone build pipeline
-│       └── README.md           # Game guide
-├── Makefile                    # Master build & test pipeline
-├── README.md                   # Repository guide and controls
-└── AGENTS.md                   # Architecture & developer reference
-```
+A modular, high-performance collection of classic arcade and puzzle games written in C for Windows console environments with 60 FPS flicker-free ANSI color rendering.
 
 ---
 
-## Adding a New Game to the Arcade (Extensibility Guide)
+## Standard 5-Module Game Architecture
 
-To add any new game (e.g. `breakout`, `pong`, `sokoban`):
+Every game in `games/<game_name>/` follows a strict modular 5-component layout:
 
-1. **Create the Game Directory**:
-   `games/<game_name>/` containing:
-   - `include/`: Game definitions, structures, and headers.
-   - `src/`: Game logic, input handling, rendering, and entry loop.
-   - `Makefile`: Standalone build pipeline with `all`, `test`, and `clean` targets.
-   - `test_<game_name>.c`: Automated unit tests.
+```
+games/<game_name>/
+├── include/
+│   ├── config.h        # Constants, board sizes, enums, game states, action codes
+│   ├── game.h          # Data structures, GameState model, pure logic prototypes
+│   ├── input.h         # Input action mapping interface
+│   ├── platform.h      # Console mode, QPC high-res timer, sleep interface
+│   └── render.h        # ANSI TrueColor frame rendering interface
+├── src/
+│   ├── config.c        # (Optional) Static asset tables, dictionaries, word lists
+│   ├── game.c          # Pure game logic, physics, board state, rules, score calculation
+│   ├── input.c         # Non-blocking key decoding (_kbhit / _getch) -> GameAction
+│   ├── platform.c      # Windows console VT100, UTF-8, QPC timing, cleanup hooks
+│   ├── render.c        # Flicker-free TrueColor ANSI rendering, compact layout (<= 21 lines)
+│   └── main.c          # 60 FPS game loop (Init -> Input -> Update -> Render -> Save)
+├── test_<game_name>.c  # Headless automated unit tests (pure logic / no console GUI)
+├── Makefile            # Standalone build (all, test, clean targets)
+└── README.md           # User guide, gameplay rules, and player controls
+```
 
-2. **Register in Master [Makefile](file:///c:/Users/admin/projects/personal/tetris/Makefile)**:
-   Add a target calling `$(MAKE) -C games/<game_name>` in `all`, `test`, and `clean`.
+### Module Responsibilities
 
-3. **Register in Arcade Hub ([src/main.c](file:///c:/Users/admin/projects/personal/tetris/src/main.c))**:
-   Append a new entry to the `GAMES[]` table with its title, description, and executable path.
+1. **`config.h`**:
+   - Defines all game constants (board dimensions, physics constants, presets, tick rates).
+   - Declares state enums (`RoundState`, `PlayState`) and input semantic codes (`GameAction`).
+2. **`game.h` / `game.c`**:
+   - Encapsulates pure state (`GameState`) and deterministic simulation logic.
+   - Independent of rendering and direct console I/O; 100% testable in headless suites.
+   - Handles game reset, physics integration, collisions, rule evaluation, score calculation, and savegame serialization.
+3. **`input.h` / `input.c`**:
+   - Non-blocking input decoding using `_kbhit()` and `_getch()`.
+   - Handles extended key codes (arrows: `0` or `224` prefix).
+   - Normalizes raw keystrokes into semantic `GameAction` enums.
+4. **`platform.h` / `platform.c`**:
+   - Windows Console API terminal configuration and lifecycle management.
+   - Enables virtual terminal sequences (`ENABLE_VIRTUAL_TERMINAL_PROCESSING`).
+   - High-resolution timing via `QueryPerformanceCounter` (QPC).
+   - Cleanup guarantees on process exit or signal interrupts.
+5. **`render.h` / `render.c`**:
+   - TrueColor ANSI rendering (`\033[38;2;R;G;Bm` fg, `\033[48;2;R;G;Bm` bg).
+   - Compact viewport budgets (strictly `<= 21 lines`) to prevent vertical scrolling/jitter on standard 80×24 and 80×25 terminals.
+   - Dynamic visible length calculation (`visible_length()`) to ignore ANSI escapes and UTF-8 continuation bytes for precise box alignment.
+   - Appends `\033[K` before newlines to clear trailing characters from prior frames.
+6. **`main.c`**:
+   - Coordinates game lifecycle: `platform_init()` -> `render_init()` -> `game_init()` -> 60 FPS Loop -> `game_save_scores()` -> `render_cleanup()` -> `platform_cleanup()`.
+7. **`test_<game>.c`**:
+   - Automated headless regression tests using standard `<assert.h>`.
+
+---
+
+## Technical Constraints & Implementation Guidelines
+
+### 1. Language Standards & Formatting
+- **Standard**: C99 / C11 pure standard library + Windows Console API.
+- **Indentation**: Strict **2 spaces** indentation throughout the entire codebase (no tabs).
+- **Naming Conventions**: `snake_case` for functions/variables, `UPPER_SNAKE_CASE` for constants/macros, `PascalCase` for typedef structs/enums.
+
+### 2. Windows Console & VT100 ANSI Setup
+All games must initialize and restore console state cleanly:
+- **Output Mode**: Enable `ENABLE_VIRTUAL_TERMINAL_PROCESSING | ENABLE_PROCESSED_OUTPUT`.
+- **Input Mode**: Disable `ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT` for immediate non-blocking raw keypresses.
+- **Code Page**: Set UTF-8 output code page: `SetConsoleOutputCP(CP_UTF8)`.
+- **Alternate Buffer & Cursor**: Enter alternate buffer `\033[?1049h` and hide cursor `\033[?25l` on init; restore cursor `\033[?25h` and exit buffer `\033[?1049l` on cleanup.
+
+### 3. Cleanup Guarantees
+Console state MUST be restored on exit to prevent bricking the user's terminal:
+- Register `atexit(platform_cleanup)`.
+- Register console control handler via `SetConsoleCtrlHandler(console_ctrl_handler, TRUE)` to catch `Ctrl+C`, window close, and break signals.
+- Always reset terminal attributes `\033[0m` and flush `stdout`.
+
+### 4. Centralized Score Persistence (`include/scores.h`)
+All arcade games share a unified score repository stored in [arcade_scores.ini](file:///c:/Users/admin/projects/personal/tetris/arcade_scores.ini):
+- **Isolation**: Each game owns a dedicated INI section (e.g. `[tetris]`, `[minesweeper]`, `[wordle]`, `[blackjack]`).
+- **Path Resolution**: `arcade_scores_path()` automatically resolves the repository root across execution contexts (Arcade Hub launcher, standalone game executable in `games/<name>/`, or test runner).
+- **API**:
+  - `int arcade_score_get(const char *section, const char *key)`: Returns score value or 0.
+  - `void arcade_score_set(const char *section, const char *key, int value)`: Reads, updates, and atomically saves INI.
+- Scores must be saved on round completion and game exit.
+
+### 5. Viewport & Rendering Constraints
+- **Vertical Line Budget**: Total rendered lines must be strictly `<= 21 lines` to guarantee zero scrolling, screen jitter, or rolling on standard 80×24 / 80×25 terminals.
+- **ANSI Length Calculation**: Never use `strlen()` to pad formatted lines containing ANSI escape sequences or UTF-8 glyphs. Implement `visible_length()` to skip `\033...m` escape codes and UTF-8 continuation bytes (`(c & 0xC0) == 0x80`).
+
+---
+
+## Adding a New Game to the Arcade (Checklist)
+
+1. **Create Game Subdirectory**:
+   `games/<game_name>/` containing `include/`, `src/`, `test_<game_name>.c`, `Makefile`, and `README.md`.
+2. **Implement Standalone Makefile**:
+   Must provide `all` (`<game_name>.exe`), `test` (`test_<game_name>.exe`), and `clean` targets. Include `-Iinclude -I../../include`.
+3. **Register in Master [Makefile](file:///c:/Users/admin/projects/personal/tetris/Makefile)**:
+   Add game target to `all`, `test`, `clean`, and `.PHONY`.
+4. **Register in Arcade Hub ([src/main.c](file:///c:/Users/admin/projects/personal/tetris/src/main.c))**:
+   Append an entry to `GAMES[]` table with title, description, binary path, score section, and score key.
+5. **Score Persistence**:
+   Read and update high scores via `arcade_score_get()` and `arcade_score_set()` from [include/scores.h](file:///c:/Users/admin/projects/personal/tetris/include/scores.h).
+6. **Documentation**:
+   Add user-facing game description, controls, and features to root [README.md](file:///c:/Users/admin/projects/personal/tetris/README.md) and `games/<game_name>/README.md`.
 
 ---
 
@@ -124,7 +116,7 @@ To add any new game (e.g. `breakout`, `pong`, `sokoban`):
   ```bash
   make
   ```
-  Produces `arcade.exe`, `games/tetris/tetris.exe`, `games/2048/2048.exe`, `games/minesweeper/minesweeper.exe`, `games/snake/snake.exe`, `games/invaders/invaders.exe`, `games/sudoku/sudoku.exe`, `games/breaker/breaker.exe`, `games/block/block.exe`, `games/pong/pong.exe`, `games/typing/typing.exe`, `games/wordle/wordle.exe`, `games/flappy/flappy.exe`, and `games/blackjack/blackjack.exe`.
+  Produces `arcade.exe` launcher and all game executables in `games/<game>/`.
 
 - **Run Full Automated Test Suite**:
   ```bash
@@ -149,134 +141,12 @@ To add any new game (e.g. `breakout`, `pong`, `sokoban`):
   make blackjack
   ```
 
+- **Run Individual Game Tests**:
+  ```bash
+  make -C games/<game_name> test
+  ```
+
 - **Clean Entire Workspace**:
   ```bash
   make clean
   ```
-
----
-
-## Controls Reference
-
-### Arcade Hub Launcher (`arcade.exe`)
-- `↑` / `↓` / `W` / `S`: Navigate game selection
-- `Enter` / `Space`: Launch selected game
-- `1` - `9`: Quick select and launch
-- `Q`: Quit arcade
-
-### Tetris (`games/tetris/tetris.exe`)
-- `←` / `→` or `A` / `D`: Move left / right
-- `↑` / `W` / `X`: Rotate clockwise (SRS)
-- `Z`: Rotate counter-clockwise
-- `↓` / `S`: Soft drop
-- `Space`: Hard drop
-- `C` / `H` / `0`: Hold piece
-- `P` / `Esc`: Pause / resume
-- `R`: Restart | `Q`: Quit
-
-### 2048 (`games/2048/2048.exe`)
-- `↑` / `↓` / `←` / `→` or `W` / `S` / `A` / `D` or `H` / `J` / `K` / `L`: Slide tiles
-- `U` / `Z`: Undo move (up to 32 moves)
-- `C` / `Enter`: Continue playing past 2048
-- `R`: Start fresh game (clears active save)
-- `Q` / `Esc`: Auto-save board & progress, and return to Arcade Hub
-
-### Minesweeper (`games/minesweeper/minesweeper.exe`)
-- `Arrows` / `WASD` / `HJKL`: Move cursor
-- `Space` / `Enter`: Reveal cell (first-click safe)
-- `F`: Toggle flag
-- `C`: Chord reveal around completed number
-- `1` / `2` / `3`: Switch difficulty (Beginner, Intermediate, Expert)
-- `R`: Restart | `Q`: Quit
-
-### Cyberpunk Snake (`games/snake/snake.exe`)
-- `Arrows` / `WASD` / `HJKL`: Steer snake
-- `M`: Toggle Wrap Mode / Solid Walls
-- `P` / `Esc`: Pause / resume
-- `R`: Restart | `Q`: Quit
-
-### Space Invaders (`games/invaders/invaders.exe`)
-- `←` / `→` or `A` / `D`: Move Cannon
-- `Space` / `W` / `↑`: Fire Laser
-- `P` / `Esc`: Pause / resume
-- `R`: Restart | `Q`: Quit
-
-### Sudoku (`games/sudoku/sudoku.exe`)
-- `Arrows` / `WASD` / `HJKL`: Move cursor across 9x9 grid
-- `1` - `9`: Place digit / Toggle candidate note
-- `N`: Toggle Pencil Notes mode
-- `0` / `Backspace` / `Del` / `X`: Clear cell
-- `U` / `Z`: Undo move (up to 64 steps)
-- `H`: Hint (reveals correct cell value)
-- `E`: Toggle conflict checking
-- `Tab` / `M`: Cycle difficulty (Easy, Medium, Hard, Expert)
-- `P` / `Esc`: Pause / resume
-- `R`: Start fresh puzzle (clears active save)
-- `Q` / `Esc`: Auto-save in-progress puzzle & timer, and return to Arcade Hub
-
-### Neon Balls Bricks Breaker (`games/breaker/breaker.exe`)
-- `Mouse Move`: Aim trajectory laser guide in real time
-- `Left Click` / `Space` / `Enter`: Launch ball swarm
-- `Right Click` / `F` / Hold `Space`: Toggle 3x Fast-Forward Turbo mode
-- `←` / `→` or `A` / `D`: Adjust aim angle via keyboard
-- `R`: Start fresh endless run
-- `Q` / `Esc`: Auto-save progress and return to Arcade Hub
-
-### Classic Wood Block Puzzle (`games/block/block.exe`)
-- `Mouse Move`: Move cursor / view live ghost placement preview
-- `Left Click`: Pick piece from bottom tray or place on grid cell
-- `1` / `2` / `3`: Select piece from Tray Slot 1, 2, or 3
-- `←` `→` `↑` `↓` / `WASD` / `HJKL`: Move placement cursor across 10×10 grid
-- `Space` / `Enter`: Place currently selected piece at cursor
-- `Tab` / `0` / `Esc`: Deselect active piece
-- `R`: Start fresh endless run
-- `Q` / `Esc`: Auto-save progress and return to Arcade Hub
-
-### Classic Pong (`games/pong/pong.exe`)
-- `W` / `S` or `↑` / `↓`: Move player paddle
-- `Space` / `Enter`: Serve ball / Pause / Resume
-- `Tab` / `M`: Cycle AI difficulty (Easy, Medium, Hard)
-- `R`: Reset match (starts fresh game)
-- `Q` / `Esc`: Auto-save match progress and return to Arcade Hub
-
-### Cyber Citadel Typing Defense (`games/typing/typing.exe`)
-- `A` – `Z`: Type English words to lock onto and destroy incoming missiles
-- `Backspace` / `Del`: Unlock / cancel current locked target
-- `Space` / `Enter`: Skip wave announcement / Restart mission on Game Over
-- `P` / `Esc`: Pause / resume mission
-- `R`: Reset mission (starts fresh game)
-- `Q` / `Esc`: Auto-save mission progress and return to Arcade Hub
-
-### Wordle CLI (`games/wordle/wordle.exe`)
-- `A` – `Z`: Type 5-letter guess words
-- `Backspace` / `Del`: Delete last letter
-- `Enter`: Submit guess / Play next round on Game Over
-- `Space`: Play next round on Game Over
-- `R` / `Ctrl+R`: Start fresh puzzle
-- `Esc` / `Ctrl+Q`: Auto-save active game & return to Arcade Hub
-
-### Flappy Bird CLI (`games/flappy/flappy.exe`)
-- `Space` / `W` / `↑` / `Enter`: Flap wings / Start game / Play again on Game Over
-- `P` / `Esc`: Pause / resume flight
-- `R`: Reset run (starts fresh game)
-- `Q` / `Esc`: Auto-save run progress and return to Arcade Hub
-
-### Blackjack 21 CLI (`games/blackjack/blackjack.exe`)
-- **Betting Phase**:
-  - `↑` / `↓` or `W` / `S`: Adjust bet (±$10)
-  - `1` - `5`: Quick presets ($10, $25, $50, $100, $500)
-  - `A`: All-In
-  - `Space` / `Enter`: Confirm bet & deal cards
-- **Player Turn**:
-  - `H` / `Space`: Hit (draw card)
-  - `S` / `Enter`: Stand (end turn)
-  - `D`: Double Down (double bet, 1 card, stand)
-  - `P` / `Tab`: Split pair into two separate hands
-  - `U`: Late Surrender (reclaim 50% bet)
-- **Insurance**:
-  - `Y` / `I`: Buy insurance (pays 2:1 on dealer Blackjack)
-  - `N` / `Space` / `Enter`: Decline insurance
-- **Round Over / General**:
-  - `Space` / `Enter`: Next hand / Deal
-  - `R`: Reload bankroll to $1,000
-  - `Q` / `Esc`: Auto-save bankroll and return to Arcade Hub
