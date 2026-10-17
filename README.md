@@ -120,6 +120,15 @@ Classic casino table card game featuring:
 - Interactive chip betting console with quick presets ($10, $25, $50, $100, $500) and All-In
 - Persistent bankroll, peak record chips, and hands won tracking in `arcade_scores.ini`
 
+### 14. 🃏 Klondike Solitaire (`games/solitaire/`)
+Classic patience card game featuring:
+- Standard 52-card deck with Fisher-Yates shuffle
+- 7-Column tableau with descending alternating-color builds and auto-reveal of exposed face-down cards
+- 4 Foundation piles (Ace to King), draw-1 stockpile with waste recycle
+- Dual control schemes: Fast key commands (`S`, `W`, `1-7`, `F`), full cursor navigation, or point-and-click mouse support (right-click to auto-foundation)
+- Deep 64-step undo history (`U`), smart hint assistant (`H`), and one-touch auto-foundation solver (`A`)
+- Strict 21-line viewport layout with zero vertical jitter and centralized score persistence
+
 ---
 
 ## Quick Start
@@ -160,6 +169,7 @@ Or run any game standalone directly:
 .\games\wordle\wordle.exe
 .\games\flappy\flappy.exe
 .\games\blackjack\blackjack.exe
+.\games\solitaire\solitaire.exe
 ```
 
 ---

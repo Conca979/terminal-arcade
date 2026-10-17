@@ -112,6 +112,13 @@ static const GameEntry GAMES[] = {
     "games\\blackjack\\blackjack.exe",
     "blackjack",
     "high_chips"
+  },
+  {
+    "Solitaire CLI",
+    "Klondike Solitaire with undo & auto-move",
+    "games\\solitaire\\solitaire.exe",
+    "solitaire",
+    "high_score"
   }
 };
 
@@ -173,6 +180,13 @@ static void draw_menu(int selected) {
           }
         } else if (strcmp(GAMES[i].score_section, "blackjack") == 0) {
           snprintf(score_badge, sizeof(score_badge), "[High: $%d]", score);
+        } else if (strcmp(GAMES[i].score_section, "solitaire") == 0) {
+          int won = arcade_score_get("solitaire", "games_won");
+          if (won > 0) {
+            snprintf(score_badge, sizeof(score_badge), "[Best: %d|🏆%d]", score, won);
+          } else {
+            snprintf(score_badge, sizeof(score_badge), "[Best: %d]", score);
+          }
         } else {
           snprintf(score_badge, sizeof(score_badge), "[Best: %d]", score);
         }

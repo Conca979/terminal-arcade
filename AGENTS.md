@@ -38,9 +38,10 @@ games/<game_name>/
    - Independent of rendering and direct console I/O; 100% testable in headless suites.
    - Handles game reset, physics integration, collisions, rule evaluation, score calculation, and savegame serialization.
 3. **`input.h` / `input.c`**:
-   - Non-blocking input decoding using `_kbhit()` and `_getch()`.
+   - Non-blocking keyboard decoding using `_kbhit()` and `_getch()`.
+   - Mouse support (e.g. aiming/clicking in Breaker or Block) decoded via Win32 `ReadConsoleInputW` / `MOUSE_EVENT`.
    - Handles extended key codes (arrows: `0` or `224` prefix).
-   - Normalizes raw keystrokes into semantic `GameAction` enums.
+   - Normalizes raw events into semantic `GameAction` enums.
 4. **`platform.h` / `platform.c`**:
    - Windows Console API terminal configuration and lifecycle management.
    - Enables virtual terminal sequences (`ENABLE_VIRTUAL_TERMINAL_PROCESSING`).
@@ -68,7 +69,7 @@ games/<game_name>/
 ### 2. Windows Console & VT100 ANSI Setup
 All games must initialize and restore console state cleanly:
 - **Output Mode**: Enable `ENABLE_VIRTUAL_TERMINAL_PROCESSING | ENABLE_PROCESSED_OUTPUT`.
-- **Input Mode**: Disable `ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT` for immediate non-blocking raw keypresses.
+- **Input Mode**: Disable `ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT` for immediate non-blocking raw keypresses (enable `ENABLE_MOUSE_INPUT | ENABLE_EXTENDED_FLAGS` when mouse support is required).
 - **Code Page**: Set UTF-8 output code page: `SetConsoleOutputCP(CP_UTF8)`.
 - **Alternate Buffer & Cursor**: Enter alternate buffer `\033[?1049h` and hide cursor `\033[?25l` on init; restore cursor `\033[?25h` and exit buffer `\033[?1049l` on cleanup.
 
@@ -78,7 +79,7 @@ Console state MUST be restored on exit to prevent bricking the user's terminal:
 - Register console control handler via `SetConsoleCtrlHandler(console_ctrl_handler, TRUE)` to catch `Ctrl+C`, window close, and break signals.
 - Always reset terminal attributes `\033[0m` and flush `stdout`.
 
-### 4. Centralized Score Persistence (`include/scores.h`)
+### 4. Centralized Score Persistence (`include/scores.h`) & Save States
 All arcade games share a unified score repository stored in [arcade_scores.ini](file:///c:/Users/admin/projects/personal/tetris/arcade_scores.ini):
 - **Isolation**: Each game owns a dedicated INI section (e.g. `[tetris]`, `[minesweeper]`, `[wordle]`, `[blackjack]`).
 - **Path Resolution**: `arcade_scores_path()` automatically resolves the repository root across execution contexts (Arcade Hub launcher, standalone game executable in `games/<name>/`, or test runner).
@@ -86,6 +87,7 @@ All arcade games share a unified score repository stored in [arcade_scores.ini](
   - `int arcade_score_get(const char *section, const char *key)`: Returns score value or 0.
   - `void arcade_score_set(const char *section, const char *key, int value)`: Reads, updates, and atomically saves INI.
 - Scores must be saved on round completion and game exit.
+- **In-Progress Save States**: Games supporting session resume (e.g. 2048, Sudoku, Wood Block) must store serialized save files locally within `games/<game_name>/` (e.g. `games/<game_name>/save_<game_name>.dat`) to keep the repository root clean.
 
 ### 5. Viewport & Rendering Constraints
 - **Vertical Line Budget**: Total rendered lines must be strictly `<= 21 lines` to guarantee zero scrolling, screen jitter, or rolling on standard 80×24 / 80×25 terminals.
@@ -139,6 +141,7 @@ All arcade games share a unified score repository stored in [arcade_scores.ini](
   make wordle
   make flappy
   make blackjack
+  make solitaire
   ```
 
 - **Run Individual Game Tests**:
