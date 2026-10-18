@@ -116,8 +116,8 @@ PileType render_get_pile_at_pos(const GameState *game, int mouse_x, int mouse_y,
     if (mouse_x >= 83 && mouse_x <= 91) return PILE_FOUNDATION_4;
   }
 
-  // Check Tableau cards (y = 9..18)
-  if (mouse_y >= 9 && mouse_y <= 18) {
+  // Check Tableau cards (y = 9 .. 9 + TABLEAU_ROWS - 1)
+  if (mouse_y >= 9 && mouse_y < 9 + TABLEAU_ROWS) {
     int col_idx = -1;
     if (mouse_x >= 5 && mouse_x <= 13) col_idx = 0;
     else if (mouse_x >= 18 && mouse_x <= 26) col_idx = 1;
@@ -141,20 +141,20 @@ PileType render_get_pile_at_pos(const GameState *game, int mouse_x, int mouse_y,
               hidden_count++;
             }
             int up_count = pile->count - hidden_count;
-            bool compress_hidden = (hidden_count + up_count + 2 > 10) && (hidden_count > 1);
+            bool compress_hidden = (hidden_count + up_count + 2 > TABLEAU_ROWS) && (hidden_count > 1);
 
             int r_idx = 1; // row 0 is top cap
             if (hidden_count > 0) {
               if (compress_hidden) {
                 r_idx++;
               } else {
-                for (int h = 0; h < hidden_count && r_idx < 8; h++) {
+                for (int h = 0; h < hidden_count && r_idx < (TABLEAU_ROWS - 2); h++) {
                   r_idx++;
                 }
               }
             }
 
-            int max_face_slots = 9 - r_idx;
+            int max_face_slots = (TABLEAU_ROWS - 1) - r_idx;
             int start_up_idx = 0;
             if (up_count > max_face_slots) {
               start_up_idx = up_count - max_face_slots;
@@ -292,10 +292,10 @@ void render_game(const GameState *game) {
            (game->cursor_pile == PILE_TABLEAU_7) ? COLOR_CURSOR : COLOR_CYAN, COLOR_RESET);
   print_table_line(tableau_headers);
 
-  // Lines 10..19: Tableau cards (10 lines total)
-  char col_rows[NUM_TABLEAU][10][128];
+  // Lines 10..(9 + TABLEAU_ROWS): Tableau cards (TABLEAU_ROWS lines total)
+  char col_rows[NUM_TABLEAU][TABLEAU_ROWS][128];
   for (int c = 0; c < NUM_TABLEAU; c++) {
-    for (int r = 0; r < 10; r++) {
+    for (int r = 0; r < TABLEAU_ROWS; r++) {
       col_rows[c][r][0] = '\0';
     }
 
@@ -308,7 +308,7 @@ void render_game(const GameState *game) {
       snprintf(col_rows[c][0], sizeof(col_rows[c][0]), "%s┌ ····· ┐%s", COLOR_BORDER_DIM, COLOR_RESET);
       snprintf(col_rows[c][1], sizeof(col_rows[c][1]), "%s│   K   │%s", COLOR_BORDER_DIM, COLOR_RESET);
       snprintf(col_rows[c][2], sizeof(col_rows[c][2]), "%s└ ····· ┘%s", COLOR_BORDER_DIM, COLOR_RESET);
-      for (int r = 3; r < 10; r++) {
+      for (int r = 3; r < TABLEAU_ROWS; r++) {
         snprintf(col_rows[c][r], sizeof(col_rows[c][r]), "         ");
       }
       continue;
@@ -326,8 +326,8 @@ void render_game(const GameState *game) {
     const char *top_cap_col = is_col_sel ? COLOR_CARD_SEL : (is_col_cur ? COLOR_CURSOR : (hidden_count > 0 ? COLOR_HIDDEN_CARD : COLOR_CARD_BORDER));
     snprintf(col_rows[c][r_idx++], sizeof(col_rows[c][0]), "%s┌───────┐%s", top_cap_col, COLOR_RESET);
 
-    // If total rows needed > 10, compress hidden cards
-    bool compress_hidden = (hidden_count + up_count + 2 > 10) && (hidden_count > 1);
+    // If total rows needed > TABLEAU_ROWS, compress hidden cards
+    bool compress_hidden = (hidden_count + up_count + 2 > TABLEAU_ROWS) && (hidden_count > 1);
 
     if (hidden_count > 0) {
       if (compress_hidden) {
@@ -337,21 +337,21 @@ void render_game(const GameState *game) {
           snprintf(col_rows[c][r_idx++], sizeof(col_rows[c][0]), "%s│░(%d)░ │%s", COLOR_HIDDEN_CARD, hidden_count, COLOR_RESET);
         }
       } else {
-        for (int h = 0; h < hidden_count && r_idx < 8; h++) {
+        for (int h = 0; h < hidden_count && r_idx < (TABLEAU_ROWS - 2); h++) {
           snprintf(col_rows[c][r_idx++], sizeof(col_rows[c][0]), "%s│░░░░░░░│%s", COLOR_HIDDEN_CARD, COLOR_RESET);
         }
       }
     }
 
     // Face-up cards
-    int max_face_slots = 9 - r_idx;
+    int max_face_slots = (TABLEAU_ROWS - 1) - r_idx;
     int start_up_idx = 0;
     if (up_count > max_face_slots) {
       start_up_idx = up_count - max_face_slots;
       snprintf(col_rows[c][r_idx++], sizeof(col_rows[c][0]), "%s│ ▲ +%-2d │%s", COLOR_DIM, start_up_idx, COLOR_RESET);
     }
 
-    for (int u = start_up_idx; u < up_count && r_idx < 9; u++) {
+    for (int u = start_up_idx; u < up_count && r_idx < (TABLEAU_ROWS - 1); u++) {
       int card_actual_idx = hidden_count + u;
       Card cd = pile->cards[card_actual_idx];
       bool sel = is_col_sel && (card_actual_idx >= game->selected_card_idx);
@@ -360,19 +360,19 @@ void render_game(const GameState *game) {
     }
 
     // Bottom cap
-    if (r_idx < 10) {
+    if (r_idx < TABLEAU_ROWS) {
       const char *bot_col = is_col_sel ? COLOR_CARD_SEL : (is_col_cur ? COLOR_CURSOR : COLOR_CARD_BORDER);
       snprintf(col_rows[c][r_idx++], sizeof(col_rows[c][0]), "%s└───────┘%s", bot_col, COLOR_RESET);
     }
 
     // Fill remaining rows with blank spaces
-    while (r_idx < 10) {
+    while (r_idx < TABLEAU_ROWS) {
       snprintf(col_rows[c][r_idx++], sizeof(col_rows[c][0]), "         ");
     }
   }
 
-  // Print the 10 rows of the tableau (exactly 91 visible chars)
-  for (int r = 0; r < 10; r++) {
+  // Print the TABLEAU_ROWS of the tableau (exactly 91 visible chars)
+  for (int r = 0; r < TABLEAU_ROWS; r++) {
     char tableau_line[2048];
     int pos = snprintf(tableau_line, sizeof(tableau_line), "  ");
     for (int c = 0; c < NUM_TABLEAU; c++) {

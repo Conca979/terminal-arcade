@@ -21,7 +21,7 @@ games/<game_name>/
 │   ├── game.c          # Pure game logic, physics, board state, rules, score calculation
 │   ├── input.c         # Non-blocking key decoding (_kbhit / _getch) -> GameAction
 │   ├── platform.c      # Windows console VT100, UTF-8, QPC timing, cleanup hooks
-│   ├── render.c        # Flicker-free TrueColor ANSI rendering, compact layout (<= 21 lines)
+│   ├── render.c        # Flicker-free TrueColor ANSI rendering (viewport budget <= 27 lines)
 │   └── main.c          # 60 FPS game loop (Init -> Input -> Update -> Render -> Save)
 ├── test_<game_name>.c  # Headless automated unit tests (pure logic / no console GUI)
 ├── Makefile            # Standalone build (all, test, clean targets)
@@ -49,7 +49,11 @@ games/<game_name>/
    - Cleanup guarantees on process exit or signal interrupts.
 5. **`render.h` / `render.c`**:
    - TrueColor ANSI rendering (`\033[38;2;R;G;Bm` fg, `\033[48;2;R;G;Bm` bg).
-   - Compact viewport budgets (strictly `<= 21 lines`) to prevent vertical scrolling/jitter on standard 80×24 and 80×25 terminals.
+   - Viewport budgets matched to standard target terminal environment (Width: 120, Height: 30):
+     - Height strictly `<= 27 lines` to prevent vertical scrolling/jitter on standard 30-line terminals (preserving comfort padding).
+     - Compact mini-games (e.g. 2048, Snake, Wordle) remain `<= 21 lines`.
+     - Taller multi-card / cascade games (e.g. Solitaire) use up to 27 lines (16 tableau rows).
+     - Width up to 115 columns (e.g. Solitaire at 95 cols) fitting within 120 columns.
    - Dynamic visible length calculation (`visible_length()`) to ignore ANSI escapes and UTF-8 continuation bytes for precise box alignment.
    - Appends `\033[K` before newlines to clear trailing characters from prior frames.
 6. **`main.c`**:
@@ -90,7 +94,14 @@ All arcade games share a unified score repository stored in [arcade_scores.ini](
 - **In-Progress Save States**: Games supporting session resume (e.g. 2048, Sudoku, Wood Block) must store serialized save files locally within `games/<game_name>/` (e.g. `games/<game_name>/save_<game_name>.dat`) to keep the repository root clean.
 
 ### 5. Viewport & Rendering Constraints
-- **Vertical Line Budget**: Total rendered lines must be strictly `<= 21 lines` to guarantee zero scrolling, screen jitter, or rolling on standard 80×24 / 80×25 terminals.
+- **Target Terminal Environment**: Default user environment is **Windows PowerShell / Windows Terminal with 120 columns × 30 rows** (`(get-host).ui.rawui.WindowSize: Width 120, Height 30`).
+- **Vertical Line Budget**:
+  - Total rendered lines must be strictly `<= 27 lines` (preserving at least 3 lines of padding within a 30-line terminal to guarantee zero scrolling, screen jitter, or rolling).
+  - Compact games (Tetris, 2048, Snake, Wordle, Blackjack) remain `<= 21 lines`.
+  - Taller multi-card or cascade games (e.g. Klondike Solitaire) utilize up to **27 lines** (16 tableau card rows) so full 13-card cascades (King to Ace) can be displayed without artificial compression.
+- **Horizontal Width Budget**:
+  - Maximum total line length must be strictly `<= 115 columns` to fit safely within the 120-column terminal without wrapping.
+  - Standard compact games use 75-80 columns; wider board games (e.g. Solitaire at 95 columns) expand to provide comfortable card spacing (9-column cards).
 - **ANSI Length Calculation**: Never use `strlen()` to pad formatted lines containing ANSI escape sequences or UTF-8 glyphs. Implement `visible_length()` to skip `\033...m` escape codes and UTF-8 continuation bytes (`(c & 0xC0) == 0x80`).
 
 ---

@@ -320,6 +320,7 @@ static void test_render_frame_and_mouse_hit(void) {
   assert(render_get_pile_at_pos(&g, 83, 5, &card_idx) == PILE_FOUNDATION_4);
 
   assert(render_get_pile_at_pos(&g, 5, 10, &card_idx) == PILE_TABLEAU_1);
+  assert(render_get_pile_at_pos(&g, 5, 22, &card_idx) == PILE_TABLEAU_1);
   assert(render_get_pile_at_pos(&g, 83, 10, &card_idx) == PILE_TABLEAU_7);
   assert(render_get_pile_at_pos(&g, 0, 0, &card_idx) == PILE_NONE);
 
