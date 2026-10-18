@@ -153,6 +153,7 @@ All arcade games share a unified score repository stored in [arcade_scores.ini](
   make flappy
   make blackjack
   make solitaire
+  make chess
   ```
 
 - **Run Individual Game Tests**:

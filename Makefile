@@ -8,7 +8,7 @@ else
   CLEAN_CMD = rm -f $(LAUNCHER) src/main.o
 endif
 
-all: $(LAUNCHER) tetris 2048 minesweeper snake invaders sudoku breaker block pong typing wordle flappy blackjack solitaire
+all: $(LAUNCHER) tetris 2048 minesweeper snake invaders sudoku breaker block pong typing wordle flappy blackjack solitaire chess
 
 $(LAUNCHER): src/main.c
 	$(CC) $(CFLAGS) -o $@ $<
@@ -55,6 +55,9 @@ blackjack:
 solitaire:
 	$(MAKE) -C games/solitaire
 
+chess:
+	$(MAKE) -C games/chess
+
 test:
 	$(MAKE) -C games/tetris test
 	$(MAKE) -C games/2048 test
@@ -70,6 +73,7 @@ test:
 	$(MAKE) -C games/flappy test
 	$(MAKE) -C games/blackjack test
 	$(MAKE) -C games/solitaire test
+	$(MAKE) -C games/chess test
 
 clean:
 	$(CLEAN_CMD)
@@ -87,5 +91,6 @@ clean:
 	$(MAKE) -C games/flappy clean
 	$(MAKE) -C games/blackjack clean
 	$(MAKE) -C games/solitaire clean
+	$(MAKE) -C games/chess clean
 
-.PHONY: all tetris 2048 minesweeper snake invaders sudoku breaker block pong typing wordle flappy blackjack solitaire test clean
+.PHONY: all tetris 2048 minesweeper snake invaders sudoku breaker block pong typing wordle flappy blackjack solitaire chess test clean

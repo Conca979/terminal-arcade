@@ -127,7 +127,14 @@ Classic patience card game featuring:
 - 4 Foundation piles (Ace to King), draw-1 stockpile with waste recycle
 - Dual control schemes: Fast key commands (`S`, `W`, `1-7`, `F`), full cursor navigation, or point-and-click mouse support (right-click to auto-foundation)
 - Deep 64-step undo history (`U`), smart hint assistant (`H`), and one-touch auto-foundation solver (`A`)
-- Strict 21-line viewport layout with zero vertical jitter and centralized score persistence
+- Spacious 27-line × 95-column viewport layout with zero vertical jitter and centralized score persistence
+
+### 15. ♟️ Chess Master CLI (`games/chess/`)
+Classic 8×8 FIDE chess with a built-in Negamax + Alpha-Beta + Quiescence AI engine:
+- **Complete FIDE Rules**: Castling (Kingside & Queenside with path-safety validation), En Passant, Interactive Pawn Promotion (`Q/R/B/N`), Check, Checkmate, Stalemate, 50-Move Rule, and Insufficient Material detection
+- **4 Play Modes (`M` key)**: vs AI Easy (Depth 2 + positional jitter), vs AI Medium (Depth 3 + Piece-Square Tables), vs AI Hard (Depth 4 + Quiescence search + MVV-LVA move ordering), and 2-Player Local Pass-and-Play
+- **Split-Screen 98×25 Viewport**: High-contrast 8×8 TrueColor board (` ♔ K ` unicode + algebraic dual badges, legal move dots `  •  `, capture targets `[♛ Q]`) paired with a live Match Dashboard (captured piece trays, material advantage, algebraic SAN move log)
+- **Tactical Tools**: 256-half-move undo stack (`U`/`Z` rewinds full player + AI turn), live AI Hint Advisor (`H`), Board Flip (`F`), and full keyboard + mouse point-and-click controls
 
 ---
 
@@ -170,6 +177,7 @@ Or run any game standalone directly:
 .\games\flappy\flappy.exe
 .\games\blackjack\blackjack.exe
 .\games\solitaire\solitaire.exe
+.\games\chess\chess.exe
 ```
 
 ---

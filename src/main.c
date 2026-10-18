@@ -119,6 +119,13 @@ static const GameEntry GAMES[] = {
     "games\\solitaire\\solitaire.exe",
     "solitaire",
     "high_score"
+  },
+  {
+    "Chess Master CLI",
+    "Full FIDE Chess with Alpha-Beta AI bot",
+    "games\\chess\\chess.exe",
+    "chess",
+    "wins"
   }
 };
 
@@ -187,6 +194,8 @@ static void draw_menu(int selected) {
           } else {
             snprintf(score_badge, sizeof(score_badge), "[Best: %d]", score);
           }
+        } else if (strcmp(GAMES[i].score_section, "chess") == 0) {
+          snprintf(score_badge, sizeof(score_badge), "[Wins: %d♔]", score);
         } else {
           snprintf(score_badge, sizeof(score_badge), "[Best: %d]", score);
         }
