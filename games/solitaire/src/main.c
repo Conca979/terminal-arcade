@@ -15,7 +15,6 @@ int main(void) {
   GameState game;
   game_init(&game, (unsigned int)time(NULL));
 
-  unsigned long long last_sec_tick = platform_get_time_ms();
   bool running = true;
 
   while (running) {
@@ -126,19 +125,10 @@ int main(void) {
         break;
     }
 
-    // 2. Timer Update
-    unsigned long long now = platform_get_time_ms();
-    if (now - last_sec_tick >= 1000) {
-      if (game.status == STATE_PLAYING) {
-        game.time_elapsed_sec++;
-      }
-      last_sec_tick = now;
-    }
-
-    // 3. Render Frame
+    // 2. Render Frame
     render_game(&game);
 
-    // 4. Frame rate pacing (~60 FPS)
+    // 3. Frame rate pacing (~60 FPS)
     unsigned long long frame_dur = platform_get_time_ms() - frame_start;
     if (frame_dur < 16) {
       platform_sleep_ms((int)(16 - frame_dur));

@@ -17,6 +17,9 @@
 #define COLOR_HIDDEN_CARD  "\033[38;2;100;140;215m"
 #define COLOR_WIN          "\033[1;38;2;75;255;120m"
 
+#define INNER_WIDTH 71
+#define TABLE_BORDER_HORIZ "═══════════════════════════════════════════════════════════════════════"
+
 void render_init(void) {
   printf("\033[2J\033[H");
   fflush(stdout);
@@ -35,7 +38,7 @@ static int visible_length(const char *s) {
     if (s[i] == '\033') {
       in_escape = true;
     } else if (in_escape) {
-      if (s[i] == 'm') {
+      if ((s[i] >= 'A' && s[i] <= 'Z') || (s[i] >= 'a' && s[i] <= 'z')) {
         in_escape = false;
       }
     } else {
@@ -50,7 +53,7 @@ static int visible_length(const char *s) {
 
 static void print_table_line(const char *content) {
   int vis = visible_length(content);
-  int pad = 75 - vis;
+  int pad = INNER_WIDTH - vis;
   if (pad < 0) pad = 0;
   printf("  %s║%s%s%*s%s║%s\033[K\n",
          COLOR_BORDER, COLOR_RESET, content, pad, "", COLOR_BORDER, COLOR_RESET);
@@ -63,7 +66,7 @@ static const char *get_suit_color(Suit s) {
   return COLOR_BLACK_SUIT;
 }
 
-// Format a single 7-char card face row: "│ 10♠ │" or "│ A ♥ │"
+// Format a single 7-char card face row: "│ 10♠ │" or "│ K ♠ │"
 static void format_card_face(Card card, bool is_selected, bool is_cursor, char *out, size_t size) {
   const char *r_str = rank_name(card.rank);
   const char *s_str = suit_symbol(card.suit);
@@ -71,9 +74,9 @@ static void format_card_face(Card card, bool is_selected, bool is_cursor, char *
   const char *bcol = is_selected ? COLOR_CARD_SEL : (is_cursor ? COLOR_CURSOR : COLOR_CARD_BORDER);
 
   if (card.rank == RANK_10) {
-    snprintf(out, size, "%s│%s10%s %s│%s", bcol, scol, s_str, bcol, COLOR_RESET);
+    snprintf(out, size, "%s│%s10 %s %s│%s", bcol, scol, s_str, bcol, COLOR_RESET);
   } else {
-    snprintf(out, size, "%s│%s %s %s %s│%s", bcol, scol, r_str, s_str, bcol, COLOR_RESET);
+    snprintf(out, size, "%s│ %s%s %s %s│%s", bcol, scol, r_str, s_str, bcol, COLOR_RESET);
   }
 }
 
@@ -103,14 +106,10 @@ static void format_card_full_row(Card card, bool face_down, int row, bool is_sel
 PileType render_get_pile_at_pos(int mouse_x, int mouse_y, int *out_card_idx) {
   if (out_card_idx) *out_card_idx = -1;
 
-  // Inner box starts at x = 4 (leading 2 spaces + ║ + 1 space = col 4)
   // Check Top Row cards (y = 4, 5, 6)
   if (mouse_y >= 4 && mouse_y <= 6) {
-    // Stock: x 5..11
     if (mouse_x >= 5 && mouse_x <= 11) return PILE_STOCK;
-    // Waste: x 15..21
     if (mouse_x >= 15 && mouse_x <= 21) return PILE_WASTE;
-    // Foundations: F1 (x 35..41), F2 (45..51), F3 (55..61), F4 (65..71)
     if (mouse_x >= 35 && mouse_x <= 41) return PILE_FOUNDATION_1;
     if (mouse_x >= 45 && mouse_x <= 51) return PILE_FOUNDATION_2;
     if (mouse_x >= 55 && mouse_x <= 61) return PILE_FOUNDATION_3;
@@ -143,34 +142,28 @@ void render_game(const GameState *game) {
   // Move cursor to top-left
   printf("\033[H");
 
-  // Line 1: Top border (75 double horizontals between corners)
-  printf("  %s╔═══════════════════════════════════════════════════════════════════════════╗%s\033[K\n",
-         COLOR_BORDER, COLOR_RESET);
+  // Line 1: Top border (71 double horizontals between corners)
+  printf("  %s╔" TABLE_BORDER_HORIZ "╗%s\033[K\n", COLOR_BORDER, COLOR_RESET);
 
-  // Line 2: Header / Stats bar
+  // Line 2: Header / Stats bar (time counting eliminated)
   char header_content[512];
-  int mins = game->time_elapsed_sec / 60;
-  int secs = game->time_elapsed_sec % 60;
   snprintf(header_content, sizeof(header_content),
-           " %s♠ ♥%s %sKLONDIKE SOLITAIRE%s %s♦ ♣%s │ %sSCORE: %-4d%s │ %sMOVES: %-3d%s │ %sTIME: %02d:%02d%s │ %sBEST: %-4d%s",
+           " %s♠ ♥%s %sKLONDIKE SOLITAIRE%s %s♦ ♣%s │ %sSCORE: %-4d%s │ %sMOVES: %-3d%s │ %sBEST: %-4d%s",
            COLOR_RED_SUIT, COLOR_RESET,
            COLOR_TITLE, COLOR_RESET,
            COLOR_RED_SUIT, COLOR_RESET,
            COLOR_GOLD, game->score, COLOR_RESET,
            COLOR_CYAN, game->moves, COLOR_RESET,
-           COLOR_DIM, mins, secs, COLOR_RESET,
            COLOR_GOLD, game->high_score, COLOR_RESET);
   print_table_line(header_content);
 
   // Line 3: Separator
-  printf("  %s╠═══════════════════════════════════════════════════════════════════════════╣%s\033[K\n",
-         COLOR_BORDER, COLOR_RESET);
+  printf("  %s╠" TABLE_BORDER_HORIZ "╣%s\033[K\n", COLOR_BORDER, COLOR_RESET);
 
-  // Line 4: Top row pile labels
-  // Columns aligned at: Stock (offset 3), Waste (13), F1 (33), F2 (43), F3 (53), F4 (63)
+  // Line 4: Top row pile labels (exactly 71 visible chars)
   char top_labels[512];
   snprintf(top_labels, sizeof(top_labels),
-           "   %s[S] STOCK%s   %s[W] WASTE%s             %s[F1] ♠%s     %s[F2] ♥%s     %s[F3] ♦%s     %s[F4] ♣%s",
+           "  %s STOCK %s   %s WASTE %s             %s [F1]♠ %s   %s [F2]♥ %s   %s [F3]♦ %s   %s [F4]♣ %s  ",
            (game->cursor_pile == PILE_STOCK) ? COLOR_CURSOR : COLOR_DIM, COLOR_RESET,
            (game->cursor_pile == PILE_WASTE) ? COLOR_CURSOR : COLOR_DIM, COLOR_RESET,
            (game->cursor_pile == PILE_FOUNDATION_1) ? COLOR_CURSOR : COLOR_DIM, COLOR_RESET,
@@ -231,19 +224,18 @@ void render_game(const GameState *game) {
 
     char line_buf[1024];
     snprintf(line_buf, sizeof(line_buf),
-             "   %s   %s             %s   %s   %s   %s",
+             "  %s   %s             %s   %s   %s   %s  ",
              stock_str, waste_str, f_str[0], f_str[1], f_str[2], f_str[3]);
     print_table_line(line_buf);
   }
 
   // Line 8: Separator
-  printf("  %s╠═══════════════════════════════════════════════════════════════════════════╣%s\033[K\n",
-         COLOR_BORDER, COLOR_RESET);
+  printf("  %s╠" TABLE_BORDER_HORIZ "╣%s\033[K\n", COLOR_BORDER, COLOR_RESET);
 
-  // Line 9: Tableau column headers [1] .. [7]
+  // Line 9: Tableau column headers [1] .. [7] (exactly 71 visible chars)
   char tableau_headers[512];
   snprintf(tableau_headers, sizeof(tableau_headers),
-           "   %s  [1]  %s   %s  [2]  %s   %s  [3]  %s   %s  [4]  %s   %s  [5]  %s   %s  [6]  %s   %s  [7]  %s",
+           "  %s  [1]  %s   %s  [2]  %s   %s  [3]  %s   %s  [4]  %s   %s  [5]  %s   %s  [6]  %s   %s  [7]  %s  ",
            (game->cursor_pile == PILE_TABLEAU_1) ? COLOR_CURSOR : COLOR_CYAN, COLOR_RESET,
            (game->cursor_pile == PILE_TABLEAU_2) ? COLOR_CURSOR : COLOR_CYAN, COLOR_RESET,
            (game->cursor_pile == PILE_TABLEAU_3) ? COLOR_CURSOR : COLOR_CYAN, COLOR_RESET,
@@ -254,7 +246,6 @@ void render_game(const GameState *game) {
   print_table_line(tableau_headers);
 
   // Lines 10..19: Tableau cards (10 lines total)
-  // For each column, prepare what to render on each of the 10 rows
   char col_rows[NUM_TABLEAU][10][128];
   for (int c = 0; c < NUM_TABLEAU; c++) {
     for (int r = 0; r < 10; r++) {
@@ -276,93 +267,95 @@ void render_game(const GameState *game) {
       continue;
     }
 
-    // Determine how many face-down vs face-up cards
     int hidden_count = 0;
     while (hidden_count < pile->count && !pile->cards[hidden_count].face_up) {
       hidden_count++;
     }
     int up_count = pile->count - hidden_count;
 
-    // Layout rows:
-    // If total rows needed (hidden + up) <= 9, render 1 line per hidden card
-    // Otherwise compress hidden cards into 1 line: "│░(%d)░│"
     int r_idx = 0;
+
+    // Top cap
+    const char *top_cap_col = is_col_sel ? COLOR_CARD_SEL : (is_col_cur ? COLOR_CURSOR : (hidden_count > 0 ? COLOR_HIDDEN_CARD : COLOR_CARD_BORDER));
+    snprintf(col_rows[c][r_idx++], sizeof(col_rows[c][0]), "%s┌─────┐%s", top_cap_col, COLOR_RESET);
+
+    // If total rows needed > 10, compress hidden cards
+    bool compress_hidden = (hidden_count + up_count + 2 > 10) && (hidden_count > 1);
+
     if (hidden_count > 0) {
-      if (hidden_count + up_count <= 9) {
-        for (int h = 0; h < hidden_count && r_idx < 9; h++) {
+      if (compress_hidden) {
+        snprintf(col_rows[c][r_idx++], sizeof(col_rows[c][0]), "%s│░(%d)░│%s", COLOR_HIDDEN_CARD, hidden_count, COLOR_RESET);
+      } else {
+        for (int h = 0; h < hidden_count && r_idx < 8; h++) {
           snprintf(col_rows[c][r_idx++], sizeof(col_rows[c][0]), "%s│░░░░░│%s", COLOR_HIDDEN_CARD, COLOR_RESET);
         }
-      } else {
-        // Compressed hidden cards
-        snprintf(col_rows[c][r_idx++], sizeof(col_rows[c][0]), "%s│░(%d)░│%s", COLOR_HIDDEN_CARD, hidden_count, COLOR_RESET);
       }
     }
 
-    // Now render face-up cards
-    // If up_count cards don't fit in remaining (10 - r_idx) lines, scroll down so bottom is shown
-    int avail_face_rows = 9 - r_idx;
+    // Face-up cards
+    int max_face_slots = 9 - r_idx;
     int start_up_idx = 0;
-    if (up_count > avail_face_rows) {
-      start_up_idx = up_count - avail_face_rows;
+    if (up_count > max_face_slots) {
+      start_up_idx = up_count - max_face_slots;
       snprintf(col_rows[c][r_idx++], sizeof(col_rows[c][0]), "%s▲ +%-2d │%s", COLOR_DIM, start_up_idx, COLOR_RESET);
     }
 
     for (int u = start_up_idx; u < up_count && r_idx < 9; u++) {
       int card_actual_idx = hidden_count + u;
       Card cd = pile->cards[card_actual_idx];
-
       bool sel = is_col_sel && (card_actual_idx >= game->selected_card_idx);
       bool cur = is_col_cur && (card_actual_idx == game->cursor_card_idx);
-
       format_card_face(cd, sel, cur, col_rows[c][r_idx++], sizeof(col_rows[c][0]));
     }
 
-    // Bottom border for the stack
+    // Bottom cap
     if (r_idx < 10) {
-      bool sel = is_col_sel;
-      const char *bcol = sel ? COLOR_CARD_SEL : COLOR_CARD_BORDER;
-      snprintf(col_rows[c][r_idx++], sizeof(col_rows[c][0]), "%s└─────┘%s", bcol, COLOR_RESET);
+      const char *bot_col = is_col_sel ? COLOR_CARD_SEL : (is_col_cur ? COLOR_CURSOR : COLOR_CARD_BORDER);
+      snprintf(col_rows[c][r_idx++], sizeof(col_rows[c][0]), "%s└─────┘%s", bot_col, COLOR_RESET);
     }
 
-    // Fill remaining with blanks
+    // Fill remaining rows with blank spaces
     while (r_idx < 10) {
       snprintf(col_rows[c][r_idx++], sizeof(col_rows[c][0]), "       ");
     }
   }
 
-  // Print the 10 rows of the tableau
+  // Print the 10 rows of the tableau (exactly 71 visible chars)
   for (int r = 0; r < 10; r++) {
-    char tableau_line[1024];
-    snprintf(tableau_line, sizeof(tableau_line),
-             "   %.63s   %.63s   %.63s   %.63s   %.63s   %.63s   %.63s",
-             col_rows[0][r], col_rows[1][r], col_rows[2][r],
-             col_rows[3][r], col_rows[4][r], col_rows[5][r], col_rows[6][r]);
+    char tableau_line[2048];
+    int pos = snprintf(tableau_line, sizeof(tableau_line), "  ");
+    for (int c = 0; c < NUM_TABLEAU; c++) {
+      pos += snprintf(tableau_line + pos, sizeof(tableau_line) - pos, "%s%s",
+                      col_rows[c][r], (c < NUM_TABLEAU - 1) ? "   " : "");
+    }
+    pos += snprintf(tableau_line + pos, sizeof(tableau_line) - pos, "  ");
     print_table_line(tableau_line);
   }
 
-  // Line 20: Controls & Status message
+  // Line 20: Controls & Status message (<= 71 visible chars)
   char status_line[512];
   if (game->status == STATE_WON) {
     snprintf(status_line, sizeof(status_line),
-             " %s★ VICTORY! %s ★  [N] New Game  [R] Replay  [Q] Exit",
-             COLOR_WIN, game->status_msg);
+             " %s★ VICTORY! Solved in %d moves! ★%s  [N] New Game  [Q] Exit",
+             COLOR_WIN, game->moves, COLOR_RESET);
   } else {
+    char msg_buf[32];
+    snprintf(msg_buf, sizeof(msg_buf), "%.17s", game->status_msg);
+
     snprintf(status_line, sizeof(status_line),
-             " %s[S]%sDraw %s[W]%sWaste %s[1-7]%sCol %s[F]%sFound %s[A]%sAuto %s[U]%sUndo %s[H]%sHint │ %s",
-             COLOR_GOLD, COLOR_RESET,
-             COLOR_GOLD, COLOR_RESET,
-             COLOR_CYAN, COLOR_RESET,
+             " %s[S]%sDraw %s[1-7]%sCol %s[F]%sFound %s[A]%sAuto %s[U]%sUndo %s[H]%sHint │ %s",
              COLOR_GOLD, COLOR_RESET,
              COLOR_CYAN, COLOR_RESET,
              COLOR_GOLD, COLOR_RESET,
              COLOR_CYAN, COLOR_RESET,
-             game->status_msg);
+             COLOR_GOLD, COLOR_RESET,
+             COLOR_CYAN, COLOR_RESET,
+             msg_buf);
   }
   print_table_line(status_line);
 
-  // Line 21: Bottom border
-  printf("  %s╚═══════════════════════════════════════════════════════════════════════════╝%s\033[K\n",
-         COLOR_BORDER, COLOR_RESET);
+  // Line 21: Bottom border (71 double horizontals between corners)
+  printf("  %s╚" TABLE_BORDER_HORIZ "╝%s\033[K\n", COLOR_BORDER, COLOR_RESET);
 
   fflush(stdout);
 }

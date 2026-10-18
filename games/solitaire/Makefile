@@ -6,7 +6,7 @@ TEST_TARGET = test_solitaire.exe
 
 SRCS = src/main.c src/game.c src/input.c src/platform.c src/render.c
 OBJS = $(SRCS:.c=.o)
-TEST_SRCS = test_solitaire.c src/game.c
+TEST_SRCS = test_solitaire.c src/game.c src/render.c
 
 ifeq ($(OS),Windows_NT)
   CLEAN_FILES = src\main.o src\game.o src\input.o src\platform.o src\render.o $(TARGET) $(TEST_TARGET)

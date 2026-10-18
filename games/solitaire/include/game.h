@@ -44,7 +44,6 @@ typedef struct {
   GameStateStatus status;
   int score;
   int moves;
-  int time_elapsed_sec;
   unsigned int seed;
   char status_msg[80];
 

@@ -210,10 +210,9 @@ void game_restart(GameState *game) {
   game->status = STATE_PLAYING;
   game->score = 0;
   game->moves = 0;
-  game->time_elapsed_sec = 0;
   game->undo_count = 0;
 
-  snprintf(game->status_msg, sizeof(game->status_msg), "Game dealt. [S] Draw, [1-7] Select Col, [A] Auto-Move");
+  snprintf(game->status_msg, sizeof(game->status_msg), "Game dealt!");
 }
 
 bool game_draw_stock(GameState *game) {

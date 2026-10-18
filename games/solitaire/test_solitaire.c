@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "game.h"
+#include "render.h"
 #include "scores.h"
 
 static void test_deck_generation_and_uniqueness(void) {
@@ -273,6 +274,35 @@ static void test_score_persistence(void) {
   printf("[PASS] test_score_persistence\n");
 }
 
+static void test_render_frame_and_mouse_hit(void) {
+  GameState g;
+  game_init(&g, 777);
+
+  // Test mouse coordinate decoding
+  int card_idx = -1;
+  assert(render_get_pile_at_pos(5, 5, &card_idx) == PILE_STOCK);
+  assert(render_get_pile_at_pos(15, 5, &card_idx) == PILE_WASTE);
+  assert(render_get_pile_at_pos(35, 5, &card_idx) == PILE_FOUNDATION_1);
+  assert(render_get_pile_at_pos(45, 5, &card_idx) == PILE_FOUNDATION_2);
+  assert(render_get_pile_at_pos(55, 5, &card_idx) == PILE_FOUNDATION_3);
+  assert(render_get_pile_at_pos(65, 5, &card_idx) == PILE_FOUNDATION_4);
+
+  assert(render_get_pile_at_pos(5, 10, &card_idx) == PILE_TABLEAU_1);
+  assert(card_idx == 1);
+  assert(render_get_pile_at_pos(65, 10, &card_idx) == PILE_TABLEAU_7);
+  assert(render_get_pile_at_pos(0, 0, &card_idx) == PILE_NONE);
+
+  // Verify render_game memory safety across states
+  volatile int canary = 0x5A5A5A5A;
+  render_game(&g);
+
+  g.status = STATE_WON;
+  render_game(&g);
+
+  assert(canary == 0x5A5A5A5A);
+  printf("[PASS] test_render_frame_and_mouse_hit\n");
+}
+
 int main(void) {
   printf("Running Solitaire unit tests...\n\n");
 
@@ -285,6 +315,7 @@ int main(void) {
   test_undo_stack();
   test_win_condition_detection();
   test_score_persistence();
+  test_render_frame_and_mouse_hit();
 
   printf("\nAll Solitaire unit tests PASSED successfully!\n");
   return 0;
