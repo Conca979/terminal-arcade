@@ -394,6 +394,68 @@ bool game_move(GameState *game, PileType src, int card_idx, PileType dst) {
   return false;
 }
 
+bool game_move_smart(GameState *game, PileType src, int card_idx, PileType dst) {
+  if (src == dst || src == PILE_NONE || dst == PILE_NONE) {
+    return false;
+  }
+
+  // If destination is a foundation, use standard game_move
+  if (dst >= PILE_FOUNDATION_1 && dst <= PILE_FOUNDATION_4) {
+    return game_move(game, src, card_idx, dst);
+  }
+
+  // Moving between Tableau columns: smart matching
+  if (src >= PILE_TABLEAU_1 && src <= PILE_TABLEAU_7 && dst >= PILE_TABLEAU_1 && dst <= PILE_TABLEAU_7) {
+    CardPile *src_pile = &game->tableau[src - PILE_TABLEAU_1];
+    CardPile *dst_pile = &game->tableau[dst - PILE_TABLEAU_1];
+    if (src_pile->count == 0) return false;
+
+    // 1. Try explicit card_idx if valid and face-up
+    if (card_idx >= 0 && card_idx < src_pile->count && src_pile->cards[card_idx].face_up) {
+      Card candidate = src_pile->cards[card_idx];
+      bool valid = false;
+      if (dst_pile->count == 0) {
+        valid = (candidate.rank == RANK_K);
+      } else {
+        valid = card_can_stack_tableau(candidate, dst_pile->cards[dst_pile->count - 1]);
+      }
+      if (valid) {
+        return game_move(game, src, card_idx, dst);
+      }
+    }
+
+    // 2. Otherwise search for ANY face-up card in src_pile that can legally move to dst_pile
+    int first_up = -1;
+    for (int k = 0; k < src_pile->count; k++) {
+      if (src_pile->cards[k].face_up) {
+        first_up = k;
+        break;
+      }
+    }
+
+    if (first_up >= 0) {
+      for (int k = first_up; k < src_pile->count; k++) {
+        Card candidate = src_pile->cards[k];
+        bool valid = false;
+        if (dst_pile->count == 0) {
+          valid = (candidate.rank == RANK_K);
+        } else {
+          valid = card_can_stack_tableau(candidate, dst_pile->cards[dst_pile->count - 1]);
+        }
+        if (valid) {
+          return game_move(game, src, k, dst);
+        }
+      }
+    }
+
+    int dst_col = dst - PILE_TABLEAU_1 + 1;
+    snprintf(game->status_msg, sizeof(game->status_msg), "Cannot place on Col %d", dst_col);
+    return false;
+  }
+
+  return game_move(game, src, card_idx, dst);
+}
+
 bool game_auto_foundation_for_pile(GameState *game, PileType src) {
   const CardPile *pile = get_pile_ptr_const(game, src);
   if (!pile || pile->count == 0) return false;
@@ -401,31 +463,67 @@ bool game_auto_foundation_for_pile(GameState *game, PileType src) {
   Card c = pile->cards[pile->count - 1];
   if (!c.face_up) return false;
 
-  // Try each foundation
+  // 1. Try foundation that already contains this suit
   for (int f = 0; f < NUM_FOUNDATIONS; f++) {
-    PileType dst = (PileType)(PILE_FOUNDATION_1 + f);
-    if (card_can_stack_foundation(c, &game->foundations[f])) {
-      return game_move(game, src, pile->count - 1, dst);
+    if (game->foundations[f].count > 0 && game->foundations[f].cards[0].suit == c.suit) {
+      if (card_can_stack_foundation(c, &game->foundations[f])) {
+        return game_move(game, src, pile->count - 1, (PileType)(PILE_FOUNDATION_1 + f));
+      }
+      return false;
     }
   }
+
+  // 2. If Ace, place in matching suit foundation slot if empty, or any empty foundation
+  if (c.rank == RANK_A) {
+    int pref = (int)c.suit;
+    if (pref >= 0 && pref < NUM_FOUNDATIONS && game->foundations[pref].count == 0) {
+      return game_move(game, src, pile->count - 1, (PileType)(PILE_FOUNDATION_1 + pref));
+    }
+    for (int f = 0; f < NUM_FOUNDATIONS; f++) {
+      if (game->foundations[f].count == 0) {
+        return game_move(game, src, pile->count - 1, (PileType)(PILE_FOUNDATION_1 + f));
+      }
+    }
+  }
+
   return false;
 }
 
 bool game_auto_move(GameState *game) {
-  // 1. Check Waste
-  if (game_auto_foundation_for_pile(game, PILE_WASTE)) {
-    return true;
-  }
+  int total_moved = 0;
+  bool moved = true;
 
-  // 2. Check all Tableau columns from 1 to 7
-  for (int col = 0; col < NUM_TABLEAU; col++) {
-    PileType src = (PileType)(PILE_TABLEAU_1 + col);
-    if (game_auto_foundation_for_pile(game, src)) {
-      return true;
+  while (moved) {
+    moved = false;
+
+    // 1. Try Waste
+    if (game->waste.count > 0) {
+      if (game_auto_foundation_for_pile(game, PILE_WASTE)) {
+        total_moved++;
+        moved = true;
+        continue;
+      }
+    }
+
+    // 2. Try Tableau columns 1 to 7
+    for (int col = 0; col < NUM_TABLEAU; col++) {
+      PileType src = (PileType)(PILE_TABLEAU_1 + col);
+      if (game->tableau[col].count > 0) {
+        if (game_auto_foundation_for_pile(game, src)) {
+          total_moved++;
+          moved = true;
+          break;
+        }
+      }
     }
   }
 
-  snprintf(game->status_msg, sizeof(game->status_msg), "No eligible cards for Foundation");
+  if (total_moved > 0) {
+    snprintf(game->status_msg, sizeof(game->status_msg), "Auto-moved %d card(s) to Foundation", total_moved);
+    return true;
+  }
+
+  snprintf(game->status_msg, sizeof(game->status_msg), "No cards for Foundation");
   return false;
 }
 
@@ -649,14 +747,25 @@ void game_select_pile(GameState *game, PileType pile) {
   } else {
     // A source is already selected!
     if (game->selected_pile == pile) {
-      // Deselect
+      // If pressing or clicking the same tableau column again, cycle to next card down
+      if (pile >= PILE_TABLEAU_1 && pile <= PILE_TABLEAU_7) {
+        CardPile *p = get_pile_ptr(game, pile);
+        if (p && game->selected_card_idx + 1 < p->count) {
+          game->selected_card_idx++;
+          Card c = p->cards[game->selected_card_idx];
+          int col_num = pile - PILE_TABLEAU_1 + 1;
+          snprintf(game->status_msg, sizeof(game->status_msg), "Selected Col %d [%s%s]. Choose target [1-7] or [F]", col_num, rank_name(c.rank), suit_symbol(c.suit));
+          return;
+        }
+      }
+      // Otherwise deselect
       game_clear_selection(game);
       snprintf(game->status_msg, sizeof(game->status_msg), "Selection cleared");
       return;
     }
 
     // Move from selected_pile to target pile!
-    bool success = game_move(game, game->selected_pile, game->selected_card_idx, pile);
+    bool success = game_move_smart(game, game->selected_pile, game->selected_card_idx, pile);
     if (success) {
       game_clear_selection(game);
     }
@@ -670,14 +779,42 @@ void game_select_tableau_card(GameState *game, int tableau_idx, int card_idx) {
 
   if (game->selected_pile == PILE_NONE) {
     if (card_idx < 0 || card_idx >= p->count || !p->cards[card_idx].face_up) {
-      return;
+      int first_up = -1;
+      for (int k = 0; k < p->count; k++) {
+        if (p->cards[k].face_up) {
+          first_up = k;
+          break;
+        }
+      }
+      if (first_up == -1) return;
+      card_idx = first_up;
     }
     game->selected_pile = pile;
     game->selected_card_idx = card_idx;
     Card c = p->cards[card_idx];
     snprintf(game->status_msg, sizeof(game->status_msg), "Selected Col %d [%s%s]. Choose destination", tableau_idx + 1, rank_name(c.rank), suit_symbol(c.suit));
   } else {
-    game_select_pile(game, pile);
+    if (game->selected_pile == pile) {
+      if (card_idx >= 0 && card_idx < p->count && p->cards[card_idx].face_up) {
+        if (game->selected_card_idx == card_idx) {
+          game_clear_selection(game);
+          snprintf(game->status_msg, sizeof(game->status_msg), "Selection cleared");
+          return;
+        }
+        game->selected_card_idx = card_idx;
+        Card c = p->cards[card_idx];
+        snprintf(game->status_msg, sizeof(game->status_msg), "Selected Col %d [%s%s]. Choose destination", tableau_idx + 1, rank_name(c.rank), suit_symbol(c.suit));
+        return;
+      }
+      game_clear_selection(game);
+      snprintf(game->status_msg, sizeof(game->status_msg), "Selection cleared");
+      return;
+    }
+
+    bool success = game_move_smart(game, game->selected_pile, game->selected_card_idx, pile);
+    if (success) {
+      game_clear_selection(game);
+    }
   }
 }
 

@@ -274,23 +274,54 @@ static void test_score_persistence(void) {
   printf("[PASS] test_score_persistence\n");
 }
 
+static void test_smart_sub_stack_move(void) {
+  GameState g;
+  game_init(&g, 777);
+
+  // Setup Col 1: King♠ (face up, idx 0), Queen♦ (face up, idx 1), Jack♠ (face up, idx 2)
+  g.tableau[0].count = 3;
+  g.tableau[0].cards[0] = (Card){ SUIT_SPADES, RANK_K, true };
+  g.tableau[0].cards[1] = (Card){ SUIT_DIAMONDS, RANK_Q, true };
+  g.tableau[0].cards[2] = (Card){ SUIT_SPADES, RANK_J, true };
+
+  // Setup Col 2: Queen♥ (face up, idx 0)
+  g.tableau[1].count = 1;
+  g.tableau[1].cards[0] = (Card){ SUIT_HEARTS, RANK_Q, true };
+
+  // If we try moving with idx 0 (King♠) using standard game_move, it fails
+  assert(!game_move(&g, PILE_TABLEAU_1, 0, PILE_TABLEAU_2));
+
+  // game_move_smart finds Jack♠ at index 2 (Jack♠ stacks onto Queen♥) and moves it!
+  bool ok = game_move_smart(&g, PILE_TABLEAU_1, 0, PILE_TABLEAU_2);
+  assert(ok);
+
+  assert(g.tableau[0].count == 2);
+  assert(g.tableau[0].cards[0].rank == RANK_K);
+  assert(g.tableau[0].cards[1].rank == RANK_Q);
+
+  assert(g.tableau[1].count == 2);
+  assert(g.tableau[1].cards[0].rank == RANK_Q);
+  assert(g.tableau[1].cards[1].rank == RANK_J);
+
+  printf("[PASS] test_smart_sub_stack_move\n");
+}
+
 static void test_render_frame_and_mouse_hit(void) {
   GameState g;
   game_init(&g, 777);
 
-  // Test mouse coordinate decoding
+  // Test mouse coordinate decoding for 9-char wide cards and 91 inner cols
   int card_idx = -1;
-  assert(render_get_pile_at_pos(5, 5, &card_idx) == PILE_STOCK);
-  assert(render_get_pile_at_pos(15, 5, &card_idx) == PILE_WASTE);
-  assert(render_get_pile_at_pos(35, 5, &card_idx) == PILE_FOUNDATION_1);
-  assert(render_get_pile_at_pos(45, 5, &card_idx) == PILE_FOUNDATION_2);
-  assert(render_get_pile_at_pos(55, 5, &card_idx) == PILE_FOUNDATION_3);
-  assert(render_get_pile_at_pos(65, 5, &card_idx) == PILE_FOUNDATION_4);
+  assert(render_get_pile_at_pos(&g, 5, 5, &card_idx) == PILE_STOCK);
+  assert(render_get_pile_at_pos(&g, 18, 5, &card_idx) == PILE_WASTE);
+  assert(render_get_pile_at_pos(&g, 44, 5, &card_idx) == PILE_FOUNDATION_1);
+  assert(render_get_pile_at_pos(&g, 57, 5, &card_idx) == PILE_FOUNDATION_2);
+  assert(render_get_pile_at_pos(&g, 70, 5, &card_idx) == PILE_FOUNDATION_3);
+  assert(render_get_pile_at_pos(&g, 83, 5, &card_idx) == PILE_FOUNDATION_4);
 
-  assert(render_get_pile_at_pos(5, 10, &card_idx) == PILE_TABLEAU_1);
-  assert(card_idx == 1);
-  assert(render_get_pile_at_pos(65, 10, &card_idx) == PILE_TABLEAU_7);
-  assert(render_get_pile_at_pos(0, 0, &card_idx) == PILE_NONE);
+  assert(render_get_pile_at_pos(&g, 5, 10, &card_idx) == PILE_TABLEAU_1);
+  assert(render_get_pile_at_pos(&g, 83, 10, &card_idx) == PILE_TABLEAU_7);
+  assert(render_get_pile_at_pos(&g, 0, 0, &card_idx) == PILE_NONE);
 
   // Verify render_game memory safety across states
   volatile int canary = 0x5A5A5A5A;
@@ -311,6 +342,7 @@ int main(void) {
   test_draw_stock_and_recycle();
   test_tableau_rules_and_alternating_colors();
   test_sub_stack_move_and_card_reveal();
+  test_smart_sub_stack_move();
   test_foundation_rules_and_auto_move();
   test_undo_stack();
   test_win_condition_detection();

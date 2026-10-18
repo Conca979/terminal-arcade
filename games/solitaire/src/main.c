@@ -103,14 +103,19 @@ int main(void) {
 
       case ACT_MOUSE_CLICK: {
         int card_idx = -1;
-        PileType clicked = render_get_pile_at_pos(mouse.x, mouse.y, &card_idx);
+        PileType clicked = render_get_pile_at_pos(&game, mouse.x, mouse.y, &card_idx);
         if (clicked != PILE_NONE) {
           if (mouse.button == 1) { // Left click
             game.cursor_pile = clicked;
             if (clicked == PILE_STOCK) {
               game_draw_stock(&game);
             } else if (clicked >= PILE_TABLEAU_1 && clicked <= PILE_TABLEAU_7) {
-              game_select_pile(&game, clicked);
+              int col = clicked - PILE_TABLEAU_1;
+              if (card_idx >= 0) {
+                game_select_tableau_card(&game, col, card_idx);
+              } else {
+                game_select_pile(&game, clicked);
+              }
             } else {
               game_select_pile(&game, clicked);
             }

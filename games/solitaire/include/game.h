@@ -72,6 +72,7 @@ void game_init(GameState *game, unsigned int seed);
 void game_restart(GameState *game);
 bool game_draw_stock(GameState *game);
 bool game_move(GameState *game, PileType src, int card_idx, PileType dst);
+bool game_move_smart(GameState *game, PileType src, int card_idx, PileType dst);
 bool game_auto_move(GameState *game);
 bool game_auto_foundation_for_pile(GameState *game, PileType src);
 bool game_undo(GameState *game);
