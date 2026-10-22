@@ -84,7 +84,7 @@ Console state MUST be restored on exit to prevent bricking the user's terminal:
 - Always reset terminal attributes `\033[0m` and flush `stdout`.
 
 ### 4. Centralized Score Persistence (`include/scores.h`) & Save States
-All arcade games share a unified score repository stored in [arcade_scores.ini](file:///c:/Users/admin/projects/personal/tetris/arcade_scores.ini):
+All arcade games share a unified score repository stored in [arcade_scores.ini](arcade_scores.ini):
 - **Isolation**: Each game owns a dedicated INI section (e.g. `[tetris]`, `[minesweeper]`, `[wordle]`, `[blackjack]`).
 - **Path Resolution**: `arcade_scores_path()` automatically resolves the repository root across execution contexts (Arcade Hub launcher, standalone game executable in `games/<name>/`, or test runner).
 - **API**:
@@ -104,6 +104,11 @@ All arcade games share a unified score repository stored in [arcade_scores.ini](
   - Standard compact games use 75-80 columns; wider board games (e.g. Solitaire at 95 columns) expand to provide comfortable card spacing (9-column cards).
 - **ANSI Length Calculation**: Never use `strlen()` to pad formatted lines containing ANSI escape sequences or UTF-8 glyphs. Implement `visible_length()` to skip `\033...m` escape codes and UTF-8 continuation bytes (`(c & 0xC0) == 0x80`).
 
+### 6. Documentation Standards
+- **No Emojis or Icons**: Documentation files (`README.md`, etc.) must strictly avoid emojis, icons, or decorative glyphs in headers and body text to maintain a clean, professional, minimal style.
+- **In-Game Rendering Permitted**: Game logic and in-game ANSI/Unicode UI rendering (boards, cards, pieces, badges) may continue to use symbols, glyphs, and emojis as appropriate for gameplay.
+- **Relative Paths Only**: No absolute paths (`C:\...`, `/home/...`, `file:///...`) in committed document files; always use relative paths from the repository root.
+
 ---
 
 ## Adding a New Game to the Arcade (Checklist)
@@ -112,14 +117,14 @@ All arcade games share a unified score repository stored in [arcade_scores.ini](
    `games/<game_name>/` containing `include/`, `src/`, `test_<game_name>.c`, `Makefile`, and `README.md`.
 2. **Implement Standalone Makefile**:
    Must provide `all` (`<game_name>.exe`), `test` (`test_<game_name>.exe`), and `clean` targets. Include `-Iinclude -I../../include`.
-3. **Register in Master [Makefile](file:///c:/Users/admin/projects/personal/tetris/Makefile)**:
+3. **Register in Master [Makefile](Makefile)**:
    Add game target to `all`, `test`, `clean`, and `.PHONY`.
-4. **Register in Arcade Hub ([src/main.c](file:///c:/Users/admin/projects/personal/tetris/src/main.c))**:
+4. **Register in Arcade Hub ([src/main.c](src/main.c))**:
    Append an entry to `GAMES[]` table with title, description, binary path, score section, and score key.
 5. **Score Persistence**:
-   Read and update high scores via `arcade_score_get()` and `arcade_score_set()` from [include/scores.h](file:///c:/Users/admin/projects/personal/tetris/include/scores.h).
+   Read and update high scores via `arcade_score_get()` and `arcade_score_set()` from [include/scores.h](include/scores.h).
 6. **Documentation**:
-   Add user-facing game description, controls, and features to root [README.md](file:///c:/Users/admin/projects/personal/tetris/README.md) and `games/<game_name>/README.md`.
+   Add user-facing game description, controls, and features to root [README.md](README.md) and `games/<game_name>/README.md`, following documentation formatting standards (plain text headers, no icons or emojis, relative paths only).
 
 ---
 
@@ -154,6 +159,8 @@ All arcade games share a unified score repository stored in [arcade_scores.ini](
   make blackjack
   make solitaire
   make chess
+  make jigsaw
+  make life
   ```
 
 - **Run Individual Game Tests**:

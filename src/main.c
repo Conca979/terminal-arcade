@@ -126,6 +126,20 @@ static const GameEntry GAMES[] = {
     "games\\chess\\chess.exe",
     "chess",
     "wins"
+  },
+  {
+    "Jigsaw Snap CLI",
+    "[BETA] Pixel art jigsaw puzzle with 5 themes",
+    "games\\jigsaw\\jigsaw.exe",
+    "jigsaw",
+    "puzzles_solved"
+  },
+  {
+    "Game of Life CLI",
+    "Conway cellular automaton with 10 presets",
+    "games\\life\\life.exe",
+    "life",
+    "max_population"
   }
 };
 
@@ -196,6 +210,10 @@ static void draw_menu(int selected) {
           }
         } else if (strcmp(GAMES[i].score_section, "chess") == 0) {
           snprintf(score_badge, sizeof(score_badge), "[Wins: %d♔]", score);
+        } else if (strcmp(GAMES[i].score_section, "jigsaw") == 0) {
+          snprintf(score_badge, sizeof(score_badge), "[BETA: %d🧩]", score);
+        } else if (strcmp(GAMES[i].score_section, "life") == 0) {
+          snprintf(score_badge, sizeof(score_badge), "[Peak: %d🧬]", score);
         } else {
           snprintf(score_badge, sizeof(score_badge), "[Best: %d]", score);
         }

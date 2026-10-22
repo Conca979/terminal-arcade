@@ -18,3 +18,6 @@ games/**/savegame.dat
 .idea/
 *.swp
 *~
+
+# Agent documentation
+AGENTS.md
