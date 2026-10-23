@@ -1,10 +1,10 @@
-# Gyro 🌀 – Future Tasks & Roadmap
+# Gyro - Future Tasks & Roadmap
 
 This document outlines planned 3D objects, physics expansions, and interactive simulations for the `Gyro` terminal graphics engine.
 
 ---
 
-## 🌌 Category 1: New 3D Objects & Mathematical Worlds
+## Category 1: New 3D Objects & Mathematical Worlds
 
 - [x] **Solar System & Planetary Orbits (`src/solar_spinning.c`)**
   - **Description**: Real-time simulation of our solar system with a central illuminated Sun, orbiting planets, and moons.
@@ -61,7 +61,7 @@ This document outlines planned 3D objects, physics expansions, and interactive s
 
 ---
 
-## 🤖 Category 2: Moving Body & World Physics Upgrades (`src/body_moving.c`)
+## Category 2: Moving Body & World Physics Upgrades (`src/body_moving.c`)
 
 - [ ] **Jumping & Gravity Mechanics**
   - **Mechanics**:
@@ -88,7 +88,7 @@ This document outlines planned 3D objects, physics expansions, and interactive s
 
 ---
 
-## 🎮 Category 3: Terminal 3D Mini-Games
+## Category 3: Terminal 3D Mini-Games
 
 - [ ] **3D Wireframe Trench Run (`src/trench_run.c`)**
   - **Description**: Vector-style arcade flight game down an endless 3D trench.

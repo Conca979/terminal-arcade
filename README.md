@@ -155,6 +155,29 @@ Interactive cellular automaton simulation featuring:
 
 ---
 
+## 3D Graphics and Simulations (Gyro)
+
+Located in `gyro/`, Gyro is a zero-dependency 3D terminal graphics engine and physics simulation suite written in pure C:
+- **Schwarzschild Black Hole**: Relativistic raymarching simulating gravitational lensing and Doppler beaming with OpenMP (`gyro/src/black_hole.c`).
+- **Celestial Mechanics and Orbits**: Real-time multi-body solar system with dynamic hemisphere point lighting (`gyro/src/solar_spinning.c`) and third-person body navigation (`gyro/src/body_moving.c`).
+- **Parametric 3D Geometries**: Surface normal luminance torus (`gyro/src/donut_spinning.c`), DNA double helix (`gyro/src/dna_spinning.c`), and depth-sorted triple rotating cubes (`gyro/src/cube_spinning.c`).
+- **Interactive 3D Games and Puzzles**: Full 3x3x3 Rubik's cube with 2D scanline rasterization (`gyro/src/rubiks_cube.c`), deductive 3D Cube Sweeper (`gyro/src/cube_sweeper.c`), and 3D Raymarched Duck Hunt (`gyro/src/duck_hunt.c`).
+
+### Building Gyro Demos
+
+```bash
+# Build all 3D demos into gyro/bin/
+make gyro
+
+# Or build standalone
+cd gyro
+make
+```
+
+All 3D executables are output to `gyro/bin/`. Detailed controls and mathematical specifications are documented in [gyro/README.md](gyro/README.md).
+
+---
+
 ## Quick Start
 
 ### 1. Clone the Repository

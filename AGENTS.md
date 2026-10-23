@@ -172,6 +172,7 @@ All arcade games share a unified score repository stored in [arcade_scores.ini](
   make chess
   make jigsaw
   make life
+  make gyro
   ```
 
 - **Run Individual Game Tests**:
@@ -183,3 +184,27 @@ All arcade games share a unified score repository stored in [arcade_scores.ini](
   ```bash
   make clean
   ```
+
+---
+
+## 3D Graphics & Simulation Engine Architecture (`gyro/`)
+
+Terminal Studio houses the `gyro/` 3D engine and mathematical simulation laboratory:
+
+```
+gyro/
+├── src/            # Standalone C simulation & rendering engines
+├── bin/            # Compiled demo executables (.exe on Windows)
+├── Makefile        # Autonomous build system with OpenMP support
+├── README.md       # 3D demo catalog, camera controls, and math specifications
+└── FUTURE_TASKS.md # Mathematical roadmap for upcoming 3D simulations
+```
+
+### Technical Specs & Compiler Flags
+- **Compiler Requirements**: GCC with OpenMP support (`-fopenmp`) and standard math library (`-lm`).
+- **Optimization**: Compiled with `-O3` for high-throughput frame generation (Z-buffering, raymarching, N-body physics).
+- **Build Commands**:
+  - `make gyro`: Builds all 9 demos into `gyro/bin/` from the repository root.
+  - `make -C gyro [demo]`: Builds an individual demo (e.g. `make -C gyro black_hole`).
+  - `make -C gyro clean`: Cleans all compiled executables in `gyro/bin/`.
+- **Documentation Standards**: All documentation files in `gyro/` adhere to repository rules (plain text headers, no emojis/icons, relative paths only).

@@ -1,72 +1,62 @@
-# Gyro 🌀
+# Gyro
 
 Real-time 3D geometric visualization and ASCII rendering in pure C.
 
-`Gyro` is a lightweight, zero-dependency terminal graphics playground. It uses custom z-buffering, 3D rotational projection mathematics, and surface normal illumination to render interactive, rotating objects directly inside your terminal window.
+Gyro is a lightweight, zero-dependency terminal graphics playground. It uses custom z-buffering, 3D rotational projection mathematics, and surface normal illumination to render interactive, rotating objects directly inside your terminal window.
 
 ---
 
-## 🎬 Demos
+## Demos
 
-### ☀️ Solar System & Planetary Orbits (`src/solar_spinning.c`)
+### Solar System and Planetary Orbits (`src/solar_spinning.c`)
 Real-time celestial simulation with a glowing Sun, orbiting planets (Earth, Mars, Jupiter, Saturn with 3D tilted rings, and Moon), dynamic radial point-lighting (day/night shading), and planet camera targeting.
 
-![Solar System Demo](gifs/solar_demo.gif)
-
 ---
 
-### 🤖 3D Moving Body & Third-Person Camera (`src/body_moving.c`)
+### 3D Moving Body and Third-Person Camera (`src/body_moving.c`)
 Hierarchically animated robot with smooth walking limb motions, a spatial reference floor grid, full third-person camera orbiting, and WASD movement navigation.
 
-![Moving Body Demo](gifs/body_demo.gif)
-
 ---
 
-### 🧬 DNA Double Helix (Interactive) (`src/dna_spinning.c`)
+### DNA Double Helix (`src/dna_spinning.c`)
 Parametric double helix visualization with real-time interactive camera controls and base-pair rungs.
 
-![DNA Double Helix Demo](gifs/dna_demo.gif)
-
 ---
 
-### 🍩 3D Illuminated Donut (`src/donut_spinning.c`)
+### 3D Illuminated Donut (`src/donut_spinning.c`)
 Real-time surface normal illumination with 12-level ASCII shading.
 
-![3D Donut Demo](gifs/donut_demo.gif)
-
 ---
 
-### 🧊 Triple Rotating Cubes (`src/cube_spinning.c`)
+### Triple Rotating Cubes (`src/cube_spinning.c`)
 Multi-cube projection with independent spatial offsets, depth sorting, and real-time 3D rotation controls.
 
-![3D Cube Demo](gifs/cube_demo.gif)
+---
+
+### Interactive 3D Rubik's Cube (`src/rubiks_cube.c`)
+Fully functional 3x3x3 Rubik's cube rendered with solid colored faces using 2D scanline rasterization. Playable with standard notation inputs and features a live minimap HUD.
 
 ---
 
-### 🎲 Interactive 3D Rubik's Cube (`src/rubiks_cube.c`)
-Fully functional 3×3×3 Rubik's cube rendered with solid colored faces using 2D scanline rasterization. Playable with standard notation inputs and features a live minimap HUD.
-
----
-
-### 🕳️ Schwarzschild Black Hole (`src/black_hole.c`)
+### Schwarzschild Black Hole (`src/black_hole.c`)
 Relativistic raymarching engine simulating a black hole and accretion disk using 4th-order Runge-Kutta integration, gravitational lensing, and TrueColor Doppler beaming.
 
 ---
 
-### 💣 3D Cube Sweeper (100% No-Guess Minesweeper) (`src/cube_sweeper.c`)
+### 3D Cube Sweeper (`src/cube_sweeper.c`)
 Fully interactive 3D Minesweeper featuring Surface Mode and true 3D Volumetric Excavation Mode. Powered by an embedded 2-tier deductive constraint solver guaranteeing 100% deterministic, no-guess boards, mouse-drag turntable camera orbiting, and Voxel Contraction to view and click into the internal core.
 
 ---
 
-### 🦆 3D Raymarched Duck Hunt (`src/duck_hunt.c`)
+### 3D Raymarched Duck Hunt (`src/duck_hunt.c`)
 Real-time first-person arcade hunting game rendered with Signed Distance Fields (SDF) and volumetric raymarching. Features procedural undulating grass terrain, smooth-blended (`smin`) flapping ducks, mouse crosshair aiming, shotgun raycasts, ammo tracking, and reloading.
 
 ---
 
 ## Features
 
-- **Solar System & Planetary Orbits** (`src/solar_spinning.c`): Multi-body celestial system with central radial point lighting (day/night hemisphere shading), hierarchical moon orbits, Saturn's ring disc, time speed scaling, and planet camera focus switching.
-- **3D Moving Body & Camera** (`src/body_moving.c`): A hierarchically animated robot with smooth limb walking animations, set in a true 3D space with a third-person camera. Control movement with `WASD` and orbit the camera with `IJKL`.
+- **Solar System and Planetary Orbits** (`src/solar_spinning.c`): Multi-body celestial system with central radial point lighting (day/night hemisphere shading), hierarchical moon orbits, Saturn's ring disc, time speed scaling, and planet camera focus switching.
+- **3D Moving Body and Camera** (`src/body_moving.c`): A hierarchically animated robot with smooth limb walking animations, set in a true 3D space with a third-person camera. Control movement with `WASD` and orbit the camera with `IJKL`.
 - **DNA Double Helix** (`src/dna_spinning.c`): Parametric double helix visualization with real-time interactive camera controls.
 - **3D Torus (Donut)** (`src/donut_spinning.c`): Real-time surface normal lighting mapped to an ASCII luminance ramp (`.,-~:;=!*#$@`).
 - **Triple Rotating Cubes** (`src/cube_spinning.c`): Three simultaneous cubes of varying sizes with independent spatial offsets.
@@ -79,17 +69,17 @@ Real-time first-person arcade hunting game rendered with Signed Distance Fields 
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
 A C compiler such as `gcc` or `clang` (e.g. MinGW / MSYS2 on Windows, or standard GCC on Linux / macOS), and `make`.
 
-> 💡 **Environment Check:** Not sure if you have the required tools? Run `python doctor.py` to automatically diagnose your system and get installation instructions.
+Run `python doctor.py` to diagnose your system environment and toolchains.
 
-### Build with Make (Recommended)
+### Build with Make
 
-Build all demos into the `bin/` directory at once:
+Build all demos into the `bin/` directory:
 
 ```bash
 make
@@ -115,18 +105,15 @@ Clean all compiled executables:
 make clean
 ```
 
-All compiled binaries are placed in `bin/` with identical base names (`bin/<name>.exe` on Windows, `bin/<name>` on Linux/macOS).
+All compiled binaries are placed in `bin/` (`bin/<name>.exe` on Windows, `bin/<name>` on Linux/macOS).
 
 ---
 
-### 1. ☀️ Solar System & Planetary Orbits
+### 1. Solar System and Planetary Orbits
 
 ```bash
 # Build
 make solar_spinning
-
-# Or compile manually with gcc:
-# gcc src/solar_spinning.c -o bin/solar_spinning -lm
 
 # Run (Windows)
 .\bin\solar_spinning.exe
@@ -147,14 +134,11 @@ make solar_spinning
 
 ---
 
-### 2. 🤖 3D Moving Body & Camera
+### 2. 3D Moving Body and Camera
 
 ```bash
 # Build
 make body_moving
-
-# Or compile manually with gcc:
-# gcc src/body_moving.c -o bin/body_moving -lm
 
 # Run (Windows)
 .\bin\body_moving.exe
@@ -173,14 +157,11 @@ make body_moving
 
 ---
 
-### 3. 🧬 DNA Double Helix (Interactive)
+### 3. DNA Double Helix
 
 ```bash
 # Build
 make dna_spinning
-
-# Or compile manually with gcc:
-# gcc src/dna_spinning.c -o bin/dna_spinning -lm
 
 # Run (Windows)
 .\bin\dna_spinning.exe
@@ -201,14 +182,11 @@ make dna_spinning
 
 ---
 
-### 4. 🧊 Triple Rotating Cubes
+### 4. Triple Rotating Cubes
 
 ```bash
 # Build
 make cube_spinning
-
-# Or compile manually with gcc:
-# gcc src/cube_spinning.c -o bin/cube_spinning -lm
 
 # Run (Windows)
 .\bin\cube_spinning.exe
@@ -229,14 +207,11 @@ make cube_spinning
 
 ---
 
-### 5. 🎲 Interactive 3D Rubik's Cube
+### 5. Interactive 3D Rubik's Cube
 
 ```bash
 # Build
 make rubiks_cube
-
-# Or compile manually with gcc:
-# gcc src/rubiks_cube.c -o bin/rubiks_cube -lm
 
 # Run (Windows)
 .\bin\rubiks_cube.exe
@@ -256,14 +231,11 @@ make rubiks_cube
 
 ---
 
-### 6. 🕳️ Schwarzschild Black Hole & Gravitational Lensing
+### 6. Schwarzschild Black Hole and Gravitational Lensing
 
 ```bash
 # Build (Requires OpenMP support in GCC)
 make black_hole
-
-# Or compile manually with gcc:
-# gcc -O3 -fopenmp -Wall src/black_hole.c -o bin/black_hole -lm
 
 # Run (Windows)
 .\bin\black_hole.exe
@@ -282,14 +254,11 @@ make black_hole
 
 ---
 
-### 7. 🍩 3D Illuminated Donut
+### 7. 3D Illuminated Donut
 
 ```bash
 # Build
 make donut_spinning
-
-# Or compile manually with gcc:
-# gcc src/donut_spinning.c -o bin/donut_spinning -lm
 
 # Run (Windows)
 .\bin\donut_spinning.exe
@@ -298,18 +267,15 @@ make donut_spinning
 ./bin/donut_spinning
 ```
 
-*Continuous autonomous dual-axis rotation with dynamic 12-level surface normal luminance calculation.*
+Autonomous dual-axis rotation with dynamic 12-level surface normal luminance calculation.
 
 ---
 
-### 8. 💣 3D Cube Sweeper (100% No-Guess Minesweeper)
+### 8. 3D Cube Sweeper
 
 ```bash
 # Build
 make cube_sweeper
-
-# Or compile manually with gcc:
-# gcc -O3 -Wall -fopenmp src/cube_sweeper.c -o bin/cube_sweeper.exe -lm -fopenmp
 
 # Run (Windows)
 .\bin\cube_sweeper.exe
@@ -332,14 +298,11 @@ make cube_sweeper
 
 ---
 
-### 9. 🦆 3D Raymarched Duck Hunt
+### 9. 3D Raymarched Duck Hunt
 
 ```bash
 # Build
 make duck_hunt
-
-# Or compile manually with gcc:
-# gcc -O3 -Wall -fopenmp src/duck_hunt.c -o bin/duck_hunt.exe -lm -fopenmp
 
 # Run (Windows)
 .\bin\duck_hunt.exe
@@ -359,24 +322,24 @@ make duck_hunt
 
 ---
 
-> **Tip**: For the best visual experience, set your terminal window to at least **160 × 44 characters** (or maximize / fullscreen the window).
+For optimal visual display, set the terminal window size to at least 160 x 44 characters (or maximize / fullscreen).
 
 ---
 
 ## Roadmap
 
-See [FUTURE_TASKS.md](FUTURE_TASKS.md) for detailed mathematical specifications, controls, and planned simulations.
+See [FUTURE_TASKS.md](FUTURE_TASKS.md) for mathematical specifications and planned simulations.
 
 - [x] 3D Animated Hierarchical Body (`src/body_moving.c`)
 - [x] DNA Double Helix visualization (`src/dna_spinning.c`)
 - [x] Interactive rotation and camera controls (`WASD` / `IJKL` / zoom)
-- [x] Solar System & Planetary Orbits (`src/solar_spinning.c`)
+- [x] Solar System and Planetary Orbits (`src/solar_spinning.c`)
 - [ ] Procedural 3D Terrain Flight Simulator (`src/fly_terrain.c`)
-- [x] Black Hole & Gravitational Lensing (`src/black_hole.c`)
+- [x] Black Hole and Gravitational Lensing (`src/black_hole.c`)
 - [x] Interactive 3D Rubik's Cube (`src/rubiks_cube.c`)
-- [x] 3D Cube Sweeper (No-Guess Deductive Engine & Dual Modes) (`src/cube_sweeper.c`)
-- [x] 3D Raymarched Duck Hunt & Procedural Terrain (`src/duck_hunt.c`)
+- [x] 3D Cube Sweeper (`src/cube_sweeper.c`)
+- [x] 3D Raymarched Duck Hunt and Procedural Terrain (`src/duck_hunt.c`)
 - [x] Mouse Click-and-Drag Turntable Camera Orbiting
-- [ ] 3D Wave Tank & Ripple Surface (`src/wave_surface.c`)
-- [ ] Jumping & Gravity mechanics in `src/body_moving.c`
+- [ ] 3D Wave Tank and Ripple Surface (`src/wave_surface.c`)
+- [ ] Jumping and Gravity mechanics in `src/body_moving.c`
 - [ ] ANSI TrueColor (24-bit RGB) shading support
