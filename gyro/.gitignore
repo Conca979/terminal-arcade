@@ -1,0 +1,28 @@
+# Root temporary executables and objects
+/run
+/run.exe
+*.out
+*.o
+*.obj
+
+# Ignore executables files
+bin/
+
+# Demo Media Guidelines
+gifs/
+
+# Agents
+AGENTS.md
+
+# Local IDE and Notes
+.vscode/
+Further_optimization.txt
+
+# Draft
+draft.txt
+
+# Testing
+test_env/
+
+# Config (in contruction)
+CUBE_SWEEPER_CONFIG.md
