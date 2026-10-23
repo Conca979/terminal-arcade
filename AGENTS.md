@@ -1,6 +1,17 @@
-# Terminal Arcade in C — Developer & Agent Architecture Guide
+# Terminal Studio in C — Developer & Agent Architecture Guide
 
-A modular, high-performance collection of classic arcade and puzzle games written in C for Windows console environments with 60 FPS flicker-free ANSI color rendering.
+A modular, high-performance collection of classic games, ASCII art, 3D terminal graphics, simulations, and visual demos written in C for Windows console environments with 60 FPS flicker-free ANSI color rendering.
+
+---
+
+## Project Vision & Roadmap
+
+Terminal Studio is evolving into a unified terminal creative environment. The long-term scope encompasses:
+- Interactive console games and puzzle systems
+- Procedural and static ASCII / ANSI artwork visualizers
+- 3D terminal graphics and software rendering pipelines
+- Algorithmic simulations (cellular automata, particle fields, physics models)
+- Visual demos and shader-style ANSI effects
 
 ---
 

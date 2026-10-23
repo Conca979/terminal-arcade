@@ -1,6 +1,6 @@
-# Terminal Arcade in C
+# Terminal Studio in C
 
-A modular, high-performance collection of classic arcade and puzzle games written in C for Windows console environments with 60 FPS flicker-free ANSI color rendering.
+A modular, high-performance collection of classic games, ASCII art, 3D terminal graphics, simulations, and visual demos written in C for Windows console environments with 60 FPS flicker-free ANSI color rendering.
 
 ![C Standard](https://img.shields.io/badge/Language-C99%2FC11-blue.svg)
 ![Platform](https://img.shields.io/badge/Platform-Windows%2010%2F11-0078D6.svg)
@@ -160,8 +160,8 @@ Interactive cellular automaton simulation featuring:
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/Conca979/terminal-arcade.git
-cd terminal-arcade
+git clone https://github.com/Conca979/terminal-studio.git
+cd terminal-studio
 ```
 
 ### 2. Build Everything

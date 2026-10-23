@@ -160,7 +160,7 @@ static void draw_menu(int selected) {
 
   printf(
     "  %s╔═════════════════════════════════════════════════════════════════════════════╗%s\n"
-    "  %s║%s                      %sT E R M I N A L   A R C A D E   ( C )%s                      %s║%s\n"
+    "  %s║%s                      %sT E R M I N A L   S T U D I O   ( C )%s                      %s║%s\n"
     "  %s╚═════════════════════════════════════════════════════════════════════════════╝%s\n\n",
     COLOR_BORDER, COLOR_RESET,
     COLOR_BORDER, COLOR_RESET, COLOR_TITLE, COLOR_RESET, COLOR_BORDER, COLOR_RESET,
@@ -231,7 +231,7 @@ static void draw_menu(int selected) {
     }
   }
 
-  printf("\n      [Q] \033[1;37mQuit Arcade\033[0m\n\n");
+  printf("\n      [Q] \033[1;37mQuit Studio\033[0m\n\n");
   printf("  %sControls:%s\n", COLOR_BORDER, COLOR_RESET);
   printf("    %s[↑ / ↓ / W / S]%s Navigate    %s[Enter / Space]%s Launch Game\n", COLOR_DIM, COLOR_RESET, COLOR_DIM, COLOR_RESET);
   printf("    %s[1 - 9]%s         Quick Select %s[Q]%s             Exit\n", COLOR_DIM, COLOR_RESET, COLOR_DIM, COLOR_RESET);
@@ -288,7 +288,7 @@ int main(void) {
   }
 
   printf("\033[2J\033[H\033[0m");
-  printf("Thanks for playing Terminal Arcade!\n");
+  printf("Thanks for playing Terminal Studio!\n");
   fflush(stdout);
 
   return 0;
