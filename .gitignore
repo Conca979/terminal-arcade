@@ -21,3 +21,19 @@ games/**/savegame.dat
 
 # Agent documentation
 AGENTS.md
+
+# User's idea
+Draft.txt
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+
+# Video test artifacts
+*.mp4
+*.avi
