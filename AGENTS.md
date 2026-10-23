@@ -208,3 +208,89 @@ gyro/
   - `make -C gyro [demo]`: Builds an individual demo (e.g. `make -C gyro black_hole`).
   - `make -C gyro clean`: Cleans all compiled executables in `gyro/bin/`.
 - **Documentation Standards**: All documentation files in `gyro/` adhere to repository rules (plain text headers, no emojis/icons, relative paths only).
+
+---
+
+## 24-Bit TrueColor ASCII Video Player Architecture (`ascii_video/`)
+
+Terminal Studio integrates a Python 24-bit TrueColor ASCII video playback engine in `ascii_video/`:
+
+```
+ascii_video/
+├── __init__.py           # Package exports (AsciiConverter, AsciiVideoPlayer, GlyphMode)
+├── __main__.py           # CLI invocation entry point (python -m ascii_video)
+├── converter.py          # Geometry, luminance, Sobel edges, and ANSI TrueColor serialization
+├── player.py             # OpenCV video capture, non-blocking input, and precision pacing
+├── cli.py                # Command-line interface argument parser
+├── sample_generator.py   # Synthetic test video generator for headless CI and demo mode
+├── requirements.txt      # Python dependencies (numpy, opencv-python, colorama, pytest)
+├── README.md             # Developer documentation and CLI reference
+└── tests/                # Automated headless unit and integration test suite
+    ├── __init__.py
+    ├── test_converter.py
+    ├── test_player.py
+    └── test_edge_cases.py
+```
+
+### Module Responsibilities
+
+1. **`ascii_video/converter.py`**:
+   - Computes target character dimensions factoring in non-square monospace font cell aspect ratio (~0.5) and terminal boundary safety (`max_w = term_w - 1`).
+   - Calculates perceptual luminance via ITU-R BT.601 standard: Y = 0.299R + 0.587G + 0.114B.
+   - Implements interactive contrast scaling centered around luminance 128.0.
+   - Computes directional Sobel gradients (Gx, Gy) and discretizes angles into directional glyphs (`-`, `|`, `/`, `\`).
+   - Supports three glyph modes: `density` (ramp), `edge` (Sobel contours), and `hybrid` (edge glyphs over density ramp).
+   - Serializes ANSI 24-bit TrueColor output (`\x1b[38;2;R;G;Bm`) with run-length color deduplication and line-clearing sequences (`\x1b[K`).
+
+2. **`ascii_video/player.py`**:
+   - Manages video frame decoding via OpenCV `cv2.VideoCapture`.
+   - Polls dynamic terminal resizing via `shutil.get_terminal_size()` and triggers redraws.
+   - High-precision frame pacing using `time.perf_counter()` to maintain source/effective framerate.
+   - Non-blocking keyboard decoding (`msvcrt` on Windows with POSIX fallback).
+   - In-place single-write frame updates (`\x1b[H`) with persistent status bar (`\x1b[7m`).
+   - Instant visual feedback during pause: re-renders frame immediately on mode change, contrast change, seek, or terminal resize.
+
+3. **`ascii_video/cli.py`**:
+   - CLI parser supporting file paths, flags, `--demo` mode, dimension overrides (`-w`, `-H`), contrast (`-c`), edge thresholds, custom ramps, monochrome (`--no-color`), looping (`-l`), and FPS overrides (`--fps`).
+   - Automatically searches for `VID_20261022_230029_524.mp4` in current working directory and repository root when no file path is specified.
+
+4. **`ascii_video/sample_generator.py`**:
+   - Generates synthetic test video files containing moving color waves, rectangular edges, rotating diagonal lines, and text overlays for verification and demo mode.
+
+### Build and Test Instructions
+
+- Run all unit and integration tests:
+  ```bash
+  pytest ascii_video/tests
+  ```
+  Or via Makefile:
+  ```bash
+  make test-ascii-video
+  ```
+
+- Launch ASCII video player:
+  ```bash
+  python -m ascii_video
+  ```
+  Or via Makefile:
+  ```bash
+  make ascii-video
+  ```
+
+### Checklist for ASCII Video Module
+
+- [x] Python package structure established in `ascii_video/`
+- [x] Core ASCII converter with ITU-R BT.601 luminance and Sobel edge detection (`ascii_video/converter.py`)
+- [x] Monospace character cell aspect ratio compensation (~0.5) and terminal boundary safety
+- [x] Run-length optimized 24-bit TrueColor ANSI serialization with line-clear sequences (`\x1b[K`)
+- [x] Real-time terminal player with high-precision `time.perf_counter()` pacing (`ascii_video/player.py`)
+- [x] Non-blocking interactive keyboard controls with instant redraw on pause
+- [x] Dynamic terminal resize adaptation via `shutil.get_terminal_size()`
+- [x] Command-line interface with default video resolution (`ascii_video/cli.py`)
+- [x] Synthetic sample generator for headless environments and demonstration (`ascii_video/sample_generator.py`)
+- [x] Automated unit and integration test suite (38/38 tests passing)
+- [x] Packaging configuration (`pyproject.toml`, `ascii_video/requirements.txt`)
+- [x] Root Makefile integration (`ascii-video`, `test-ascii-video`, hooked into `make test`)
+- [x] Documentation adhering to plain markdown and relative paths (`ascii_video/README.md`, `README.md`, `AGENTS.md`)
+- [x] `.gitignore` updated for Python build artifacts, test media, and `AGENTS.md`
+

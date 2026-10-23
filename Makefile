@@ -85,6 +85,13 @@ test:
 	$(MAKE) -C games/chess test
 	$(MAKE) -C games/jigsaw test
 	$(MAKE) -C games/life test
+	pytest -v ascii_video/tests
+
+ascii-video:
+	python -m ascii_video
+
+test-ascii-video:
+	pytest -v ascii_video/tests
 
 clean:
 	$(CLEAN_CMD)
@@ -107,4 +114,5 @@ clean:
 	$(MAKE) -C games/life clean
 	$(MAKE) -C gyro clean
 
-.PHONY: all tetris 2048 minesweeper snake invaders sudoku breaker block pong typing wordle flappy blackjack solitaire chess jigsaw life gyro test clean
+.PHONY: all tetris 2048 minesweeper snake invaders sudoku breaker block pong typing wordle flappy blackjack solitaire chess jigsaw life gyro ascii-video test-ascii-video test clean
+

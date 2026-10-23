@@ -178,6 +178,33 @@ All 3D executables are output to `gyro/bin/`. Detailed controls and mathematical
 
 ---
 
+## 24-Bit TrueColor ASCII Video Player (`ascii_video/`)
+
+Located in `ascii_video/`, this Python tool converts and streams MP4 video files directly in terminal emulators using 24-bit TrueColor ANSI escape sequences:
+- **Dynamic Resolution Scaling**: Continuously queries `shutil.get_terminal_size()` and adapts video grid dimensions in real time when resizing or zooming (Ctrl +/-).
+- **Aspect Ratio Compensation**: Monospace character cells (~0.5 width-to-height ratio) are factored into area-downsampling (`cv2.INTER_AREA`) to preserve undistorted video geometry.
+- **Perceptual Luminance & Contrast**: Computes ITU-R BT.601 luminance ($Y = 0.299R + 0.587G + 0.114B$) with interactive contrast scaling.
+- **Directional Sobel Edges**: Detects spatial gradients and discretizes orientations into directional glyphs (`-`, `|`, `/`, `\`), composited with density ramps in hybrid mode.
+- **Zero-Flicker Rendering**: Single in-place frame buffer write (`\x1b[H`) with trailing line clears (`\x1b[K`) and precision frame pacing (`time.perf_counter()`).
+- **Interactive Controls**: Non-blocking keyboard controls for pause/resume (`Space`), glyph mode toggle (`M`), contrast adjust (`+` / `-`), seek (`[` / `]`), restart (`R`), and quit (`Q` / `Esc`).
+
+### Running the ASCII Video Player
+
+```bash
+# Play default video (VID_20261022_230029_524.mp4 in repo root)
+python -m ascii_video
+
+# Play specific video file
+python -m ascii_video path/to/video.mp4
+
+# Run synthetic demonstration
+python -m ascii_video --demo
+```
+
+Detailed options and developer documentation are located in [ascii_video/README.md](ascii_video/README.md).
+
+---
+
 ## Quick Start
 
 ### 1. Clone the Repository
