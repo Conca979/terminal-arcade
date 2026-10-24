@@ -13,6 +13,7 @@ import cv2
 import numpy as np
 
 from .converter import AsciiConverter, GlyphMode
+from .pipeline import FramePipeline
 
 
 def init_terminal() -> None:
@@ -83,6 +84,8 @@ class AsciiVideoPlayer:
         height: Optional[int] = None,
         fps: Optional[float] = None,
         loop: bool = False,
+        drop_frames: bool = True,
+        num_workers: int = 2,
     ) -> None:
         """Initialize the video player.
 
@@ -93,6 +96,8 @@ class AsciiVideoPlayer:
             height: Fixed height override (disables dynamic terminal height).
             fps: Custom playback FPS override.
             loop: Whether to loop video continuously.
+            drop_frames: Drop lagging frames to maintain exact real-world 1.0x playback speed.
+            num_workers: Number of background conversion worker threads.
         """
         self.video_path = Path(video_path)
         self.converter = converter or AsciiConverter()
@@ -100,10 +105,13 @@ class AsciiVideoPlayer:
         self.override_height = height
         self.custom_fps = fps
         self.loop = loop
+        self.drop_frames = drop_frames
+        self.num_workers = int(num_workers)
 
         self.paused = False
         self.stopped = False
         self.current_frame_idx = 0
+        self.dropped_frames = 0
         self.total_frames = 0
         self.source_fps = 30.0
         self.effective_fps = 30.0
@@ -111,6 +119,7 @@ class AsciiVideoPlayer:
         self.video_h = 0
         self.duration_sec = 0.0
         self.last_frame: Optional[np.ndarray] = None
+        self.pipeline: Optional[FramePipeline] = None
 
     def _open_capture(self) -> cv2.VideoCapture:
         """Open cv2.VideoCapture and extract metadata."""
@@ -148,11 +157,12 @@ class AsciiVideoPlayer:
         mode_str = self.converter.mode.value.capitalize()
         contrast_str = f"{self.converter.contrast:.1f}x"
         fps_str = f"{current_fps:.1f} FPS"
+        drop_str = f" [Drp: {self.dropped_frames}]" if self.dropped_frames > 0 else ""
 
         # Assemble status segments
         info = (
             f"[{mode_str}]{pause_indicator} [{time_str} | {frame_str}] "
-            f"[{fps_str}] [Ct: {contrast_str}] "
+            f"[{fps_str}]{drop_str} [Ct: {contrast_str}] "
             f"[Space: Pause, M: Mode, +/-: Contrast, R: Restart, Q: Quit]"
         )
 
@@ -186,46 +196,63 @@ class AsciiVideoPlayer:
             modes = [GlyphMode.DENSITY, GlyphMode.EDGE, GlyphMode.HYBRID]
             cur_idx = modes.index(self.converter.mode)
             self.converter.mode = modes[(cur_idx + 1) % len(modes)]
+            if self.pipeline:
+                self.pipeline.flush()
             return True
 
         # Restart
         if key in ("r", "R"):
+            if self.pipeline:
+                self.pipeline.seek(0)
             cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
             self.current_frame_idx = 0
-            ret, frame = cap.read()
-            if ret:
-                self.last_frame = frame
-                self.current_frame_idx = int(cap.get(cv2.CAP_PROP_POS_FRAMES))
+            if not self.pipeline:
+                ret, frame = cap.read()
+                if ret:
+                    self.last_frame = frame
+                    self.current_frame_idx = int(cap.get(cv2.CAP_PROP_POS_FRAMES))
             return True
 
         # Contrast adjustment
         if key in ("+", "="):
             self.converter.contrast = round(min(5.0, self.converter.contrast + 0.1), 1)
+            if self.pipeline:
+                self.pipeline.flush()
             return True
         if key in ("-", "_"):
             self.converter.contrast = round(max(0.1, self.converter.contrast - 0.1), 1)
+            if self.pipeline:
+                self.pipeline.flush()
             return True
 
         # Seek backward 5 seconds
         if key in ("[", "LEFT"):
             seek_frames = int(5.0 * self.effective_fps)
             target = max(0, self.current_frame_idx - seek_frames)
+            if self.pipeline:
+                self.pipeline.seek(target)
             cap.set(cv2.CAP_PROP_POS_FRAMES, target)
-            ret, frame = cap.read()
-            if ret:
-                self.last_frame = frame
-                self.current_frame_idx = int(cap.get(cv2.CAP_PROP_POS_FRAMES))
+            self.current_frame_idx = target
+            if not self.pipeline:
+                ret, frame = cap.read()
+                if ret:
+                    self.last_frame = frame
+                    self.current_frame_idx = int(cap.get(cv2.CAP_PROP_POS_FRAMES))
             return True
 
         # Seek forward 5 seconds
         if key in ("]", "RIGHT"):
             seek_frames = int(5.0 * self.effective_fps)
             target = min(max(0, self.total_frames - 1), self.current_frame_idx + seek_frames)
+            if self.pipeline:
+                self.pipeline.seek(target)
             cap.set(cv2.CAP_PROP_POS_FRAMES, target)
-            ret, frame = cap.read()
-            if ret:
-                self.last_frame = frame
-                self.current_frame_idx = int(cap.get(cv2.CAP_PROP_POS_FRAMES))
+            self.current_frame_idx = target
+            if not self.pipeline:
+                ret, frame = cap.read()
+                if ret:
+                    self.last_frame = frame
+                    self.current_frame_idx = int(cap.get(cv2.CAP_PROP_POS_FRAMES))
             return True
 
         return False
@@ -281,9 +308,33 @@ class AsciiVideoPlayer:
         fps_tracker_time = time.perf_counter()
         fps_counter = 0
         current_measured_fps = self.effective_fps
+        pause_start: Optional[float] = None
+
+        def get_dimensions() -> Tuple[int, int]:
+            cols, lines = shutil.get_terminal_size((80, 24))
+            return self.converter.calculate_dimensions(
+                video_w=self.video_w,
+                video_h=self.video_h,
+                target_w=self.override_width,
+                target_h=self.override_height,
+                term_w=cols,
+                term_h=lines,
+            )
+
+        use_pipeline = self.num_workers > 0
+        if use_pipeline:
+            self.pipeline = FramePipeline(
+                cap=cap,
+                converter=self.converter,
+                dimensions_provider=get_dimensions,
+                num_workers=self.num_workers,
+                loop=self.loop,
+            )
+            self.pipeline.start(start_frame=0)
 
         try:
-            target_time = time.perf_counter()
+            start_time = time.perf_counter()
+            start_frame_idx = 0
 
             while not self.stopped:
                 # Key processing
@@ -299,8 +350,12 @@ class AsciiVideoPlayer:
                         sys.stdout.write("\x1b[2J\x1b[H")
                         sys.stdout.flush()
                     last_terminal_size = (term_cols, term_lines)
+                    if self.pipeline:
+                        self.pipeline.flush()
 
                 if self.paused:
+                    if pause_start is None:
+                        pause_start = time.perf_counter()
                     # While paused, re-render immediately if key action changed state or terminal resized
                     if (state_changed or resized) and self.last_frame is not None:
                         self._render_current_frame(
@@ -312,36 +367,79 @@ class AsciiVideoPlayer:
                         sys.stdout.write(f"\x1b[{term_lines};1H{status}")
                         sys.stdout.flush()
                     time.sleep(0.04)
-                    target_time = time.perf_counter()
                     continue
 
-                # Read next frame
-                ret, frame = cap.read()
-                if not ret:
-                    if self.loop:
-                        cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
-                        self.current_frame_idx = 0
-                        target_time = time.perf_counter()
-                        continue
-                    else:
-                        break
+                if pause_start is not None:
+                    # Account for paused duration
+                    start_time += (time.perf_counter() - pause_start)
+                    pause_start = None
 
-                self.last_frame = frame
-                self.current_frame_idx = int(cap.get(cv2.CAP_PROP_POS_FRAMES))
+                if state_changed:
+                    # Resync playback clock anchor after seek or restart
+                    start_time = time.perf_counter()
+                    start_frame_idx = self.current_frame_idx
+
+                # Wall-clock pacing & target frame calculation
+                now = time.perf_counter()
+                elapsed = now - start_time
+                target_frame = start_frame_idx + int(elapsed * self.effective_fps)
+
+                if use_pipeline and self.pipeline:
+                    # Drop lagging frames if conversion or terminal I/O fell behind
+                    if self.drop_frames and target_frame > self.current_frame_idx:
+                        dropped = self.pipeline.drop_to(target_frame)
+                        self.dropped_frames += dropped
+
+                    # Fetch frame from prefetch pipeline
+                    frame_data = self.pipeline.get_frame(timeout=frame_duration)
+                    if frame_data is None:
+                        if self.pipeline.is_eof():
+                            break
+                        continue
+
+                    f_idx, ascii_text, bgr_frame = frame_data
+                    self.current_frame_idx = f_idx + 1
+                    self.last_frame = bgr_frame
+                else:
+                    # Synchronous fallback with frame-dropping
+                    if self.drop_frames and target_frame > self.current_frame_idx + 1:
+                        skip_count = target_frame - (self.current_frame_idx + 1)
+                        for _ in range(skip_count):
+                            if not cap.grab():
+                                break
+                            self.current_frame_idx += 1
+                            self.dropped_frames += 1
+
+                    ret, frame = cap.read()
+                    if not ret:
+                        if self.loop:
+                            cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                            self.current_frame_idx = 0
+                            start_time = time.perf_counter()
+                            start_frame_idx = 0
+                            continue
+                        else:
+                            break
+
+                    self.last_frame = frame
+                    self.current_frame_idx = int(cap.get(cv2.CAP_PROP_POS_FRAMES))
+                    w, h = get_dimensions()
+                    ascii_text, _, _ = self.converter.convert_frame(frame, w, h)
 
                 # Measure actual rendering FPS
                 fps_counter += 1
                 now = time.perf_counter()
-                elapsed = now - fps_tracker_time
-                if elapsed >= 0.5:
-                    current_measured_fps = fps_counter / elapsed
+                elapsed_fps = now - fps_tracker_time
+                if elapsed_fps >= 0.5:
+                    current_measured_fps = fps_counter / elapsed_fps
                     fps_counter = 0
                     fps_tracker_time = now
 
-                # Render to terminal
-                ascii_text = self._render_current_frame(
-                    frame, term_cols, term_lines, current_measured_fps, headless
-                )
+                # Display to terminal
+                if not headless:
+                    status_line = self.build_status_line(current_measured_fps, term_cols)
+                    sys.stdout.write(f"\x1b[H{ascii_text}\n{status_line}\x1b[0m\x1b[K")
+                    sys.stdout.flush()
 
                 if on_frame_rendered:
                     on_frame_rendered(self.current_frame_idx, ascii_text)
@@ -350,16 +448,20 @@ class AsciiVideoPlayer:
                 if max_frames is not None and frames_rendered >= max_frames:
                     break
 
-                # High-precision frame pacing
-                target_time += frame_duration
-                sleep_sec = target_time - time.perf_counter()
-                if sleep_sec > 0:
+                # High-precision frame pacing against wall clock
+                next_frame_time = start_time + (target_frame + 1 - start_frame_idx) * frame_duration
+                sleep_sec = next_frame_time - time.perf_counter()
+                if sleep_sec > 0.001:
                     time.sleep(sleep_sec)
-                elif sleep_sec < -frame_duration:
-                    # System running behind; resync pacing clock to avoid fast-forward spiral
-                    target_time = time.perf_counter()
+                elif sleep_sec < -frame_duration * 3:
+                    # If severely lagging, resync clock base
+                    start_time = time.perf_counter()
+                    start_frame_idx = self.current_frame_idx
 
         finally:
+            if self.pipeline:
+                self.pipeline.stop()
+                self.pipeline = None
             cap.release()
             if not headless:
                 # Restore cursor and terminal attributes

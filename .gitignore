@@ -2,6 +2,8 @@
 *.exe
 *.o
 *.obj
+*.dll
+*.so
 
 # Runtime data
 *highscore.txt

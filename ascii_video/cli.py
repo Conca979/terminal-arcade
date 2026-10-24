@@ -128,6 +128,25 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
         default=None,
         help="Override video playback frames-per-second.",
     )
+    parser.add_argument(
+        "--color-threshold",
+        type=int,
+        default=8,
+        help="Delta threshold for consecutive TrueColor run-length compression (0 = exact).",
+    )
+    parser.add_argument(
+        "--no-drop-frames",
+        dest="drop_frames",
+        action="store_false",
+        default=True,
+        help="Disable clock-synchronized frame dropping.",
+    )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=2,
+        help="Number of background conversion worker threads.",
+    )
 
     return parser.parse_args(args)
 
@@ -169,6 +188,7 @@ def main(args: list[str] | None = None) -> int:
         ramp=parsed.ramp,
         invert=parsed.invert,
         color=parsed.color,
+        color_threshold=parsed.color_threshold,
     )
 
     player = AsciiVideoPlayer(
@@ -178,6 +198,8 @@ def main(args: list[str] | None = None) -> int:
         height=parsed.height,
         fps=parsed.fps,
         loop=parsed.loop,
+        drop_frames=parsed.drop_frames,
+        num_workers=parsed.workers,
     )
 
     try:

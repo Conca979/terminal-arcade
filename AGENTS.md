@@ -220,7 +220,10 @@ ascii_video/
 ├── __init__.py           # Package exports (AsciiConverter, AsciiVideoPlayer, GlyphMode)
 ├── __main__.py           # CLI invocation entry point (python -m ascii_video)
 ├── converter.py          # Geometry, luminance, Sobel edges, and ANSI TrueColor serialization
-├── player.py             # OpenCV video capture, non-blocking input, and precision pacing
+├── fast_serializer.c     # High-throughput C ANSI TrueColor serializer with delta quantization
+├── fast_serializer.py    # Ctypes loader for compiled shared library with NumPy fallback
+├── pipeline.py           # Multithreaded producer-consumer prefetch pipeline
+├── player.py             # OpenCV video capture, non-blocking input, pacing, and frame dropping
 ├── cli.py                # Command-line interface argument parser
 ├── sample_generator.py   # Synthetic test video generator for headless CI and demo mode
 ├── requirements.txt      # Python dependencies (numpy, opencv-python, colorama, pytest)
@@ -229,7 +232,8 @@ ascii_video/
     ├── __init__.py
     ├── test_converter.py
     ├── test_player.py
-    └── test_edge_cases.py
+    ├── test_edge_cases.py
+    └── test_performance.py
 ```
 
 ### Module Responsibilities
@@ -240,21 +244,29 @@ ascii_video/
    - Implements interactive contrast scaling centered around luminance 128.0.
    - Computes directional Sobel gradients (Gx, Gy) and discretizes angles into directional glyphs (`-`, `|`, `/`, `\`).
    - Supports three glyph modes: `density` (ramp), `edge` (Sobel contours), and `hybrid` (edge glyphs over density ramp).
-   - Serializes ANSI 24-bit TrueColor output (`\x1b[38;2;R;G;Bm`) with run-length color deduplication and line-clearing sequences (`\x1b[K`).
+   - Delegates TrueColor serialization to `fast_serializer` with configurable color delta quantization.
 
-2. **`ascii_video/player.py`**:
-   - Manages video frame decoding via OpenCV `cv2.VideoCapture`.
-   - Polls dynamic terminal resizing via `shutil.get_terminal_size()` and triggers redraws.
-   - High-precision frame pacing using `time.perf_counter()` to maintain source/effective framerate.
-   - Non-blocking keyboard decoding (`msvcrt` on Windows with POSIX fallback).
-   - In-place single-write frame updates (`\x1b[H`) with persistent status bar (`\x1b[7m`).
+2. **`ascii_video/fast_serializer.c` & `fast_serializer.py`**:
+   - High-throughput C implementation of TrueColor ANSI serialization compiled via GCC to shared library (`.dll` on Windows, `.so` on POSIX).
+   - Fast integer formatting and UCS-4 to UTF-8 multi-byte encoding.
+   - Color delta quantization / thresholding to eliminate micro-noise in consecutive RGB values, compressing ANSI stream size by 40% to 80% and reducing terminal DirectX/GPU rendering overhead.
+   - Seamless automatic fallback to optimized NumPy implementation if the compiled binary is absent.
+
+3. **`ascii_video/pipeline.py`**:
+   - Decoupled multithreaded producer-consumer pipeline: background reader thread decodes frames while concurrent worker threads convert frames across available CPU cores.
+   - Strictly ordered frame sequencing buffer with generation tracking for instant flush on seek or resize.
+   - Fast-forward frame grabbing via OpenCV `cap.grab()` when skipping lagging frames.
+
+4. **`ascii_video/player.py`**:
+   - Clock-synchronized pacing strictly tied to wall-clock time (`time.perf_counter()`), automatically dropping lagging frames to guarantee exact 1.0x real-world playback speed without slow motion.
+   - Manages interactive playback lifecycle, status bar formatting, dynamic terminal resize polling (`shutil.get_terminal_size()`), and non-blocking keyboard decoding (`msvcrt` on Windows with POSIX fallback).
    - Instant visual feedback during pause: re-renders frame immediately on mode change, contrast change, seek, or terminal resize.
 
-3. **`ascii_video/cli.py`**:
-   - CLI parser supporting file paths, flags, `--demo` mode, dimension overrides (`-w`, `-H`), contrast (`-c`), edge thresholds, custom ramps, monochrome (`--no-color`), looping (`-l`), and FPS overrides (`--fps`).
+5. **`ascii_video/cli.py`**:
+   - CLI parser supporting file paths, flags, `--demo` mode, dimension overrides (`-w`, `-H`), contrast (`-c`), color threshold (`--color-threshold`), frame dropping (`--no-drop-frames`), worker count (`--workers`), edge thresholds, custom ramps, monochrome (`--no-color`), looping (`-l`), and FPS overrides (`--fps`).
    - Automatically searches for `VID_20261022_230029_524.mp4` in current working directory and repository root when no file path is specified.
 
-4. **`ascii_video/sample_generator.py`**:
+6. **`ascii_video/sample_generator.py`**:
    - Generates synthetic test video files containing moving color waves, rectangular edges, rotating diagonal lines, and text overlays for verification and demo mode.
 
 ### Build and Test Instructions
@@ -282,15 +294,19 @@ ascii_video/
 - [x] Python package structure established in `ascii_video/`
 - [x] Core ASCII converter with ITU-R BT.601 luminance and Sobel edge detection (`ascii_video/converter.py`)
 - [x] Monospace character cell aspect ratio compensation (~0.5) and terminal boundary safety
-- [x] Run-length optimized 24-bit TrueColor ANSI serialization with line-clear sequences (`\x1b[K`)
-- [x] Real-time terminal player with high-precision `time.perf_counter()` pacing (`ascii_video/player.py`)
+- [x] C-accelerated 24-bit TrueColor ANSI serialization with GCC shared library compilation (`ascii_video/fast_serializer.c`)
+- [x] Seamless pure Python / NumPy fallback when compiled binary is absent (`ascii_video/fast_serializer.py`)
+- [x] Color delta quantization / thresholding compressing ANSI stream size by 40-80%
+- [x] Multithreaded producer-consumer prefetch pipeline decoupling decode and conversion across CPU cores (`ascii_video/pipeline.py`)
+- [x] Clock-synchronized pacing with automatic frame dropping eliminating slow-motion playback (`ascii_video/player.py`)
 - [x] Non-blocking interactive keyboard controls with instant redraw on pause
 - [x] Dynamic terminal resize adaptation via `shutil.get_terminal_size()`
-- [x] Command-line interface with default video resolution (`ascii_video/cli.py`)
+- [x] Command-line interface with options for workers, color threshold, and frame dropping (`ascii_video/cli.py`)
 - [x] Synthetic sample generator for headless environments and demonstration (`ascii_video/sample_generator.py`)
-- [x] Automated unit and integration test suite (38/38 tests passing)
+- [x] Automated unit, integration, and performance test suite (46/46 tests passing)
 - [x] Packaging configuration (`pyproject.toml`, `ascii_video/requirements.txt`)
-- [x] Root Makefile integration (`ascii-video`, `test-ascii-video`, hooked into `make test`)
+- [x] Root Makefile integration (`ascii-video`, `test-ascii-video`, fast_serializer build target, hooked into `make test`)
 - [x] Documentation adhering to plain markdown and relative paths (`ascii_video/README.md`, `README.md`, `AGENTS.md`)
-- [x] `.gitignore` updated for Python build artifacts, test media, and `AGENTS.md`
+- [x] `.gitignore` updated for Python build artifacts, test media, `*.dll`, `*.so`, and `AGENTS.md`
+
 

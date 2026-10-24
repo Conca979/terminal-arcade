@@ -10,6 +10,9 @@ import cv2
 import numpy as np
 
 
+from .fast_serializer import serialize_truecolor as fast_serialize_truecolor
+
+
 class GlyphMode(str, enum.Enum):
     """Glyph mapping modes for ASCII rendering."""
 
@@ -35,6 +38,7 @@ class AsciiConverter:
         ramp: str = RAMP_SHORT,
         invert: bool = False,
         color: bool = True,
+        color_threshold: int = 8,
     ) -> None:
         """Initialize the ASCII converter.
 
@@ -46,6 +50,7 @@ class AsciiConverter:
             ramp: Density ramp string from dark to bright.
             invert: Invert luminance mapping.
             color: Enable 24-bit TrueColor ANSI codes.
+            color_threshold: Delta threshold for consecutive TrueColor run-length compression.
         """
         self.mode = GlyphMode(mode) if isinstance(mode, str) else mode
         self.contrast = float(contrast)
@@ -54,6 +59,7 @@ class AsciiConverter:
         self.ramp = ramp
         self.invert = invert
         self.color = color
+        self.color_threshold = int(color_threshold)
         self._ramp_array = np.array(list(ramp))
 
     def set_ramp(self, ramp: str) -> None:
@@ -200,38 +206,18 @@ class AsciiConverter:
         return (edge_chars, is_edge)
 
     def serialize_truecolor(
-        self, rgb_array: np.ndarray, chars_array: np.ndarray
+        self,
+        rgb_array: np.ndarray,
+        chars_array: np.ndarray,
+        threshold: int | None = None,
     ) -> str:
         """Serialize RGB color array and glyph characters into ANSI TrueColor string.
 
-        Uses run-length optimization for consecutive identical colors and appends
-        line-clear escape sequence (\x1b[K) to avoid residual artifacts upon resize.
+        Uses C acceleration with NumPy fallback, run-length color deduplication,
+        color delta thresholding, and trailing line-clear sequences (\x1b[K).
         """
-        h, w, _ = rgb_array.shape
-        lines: list[str] = []
-
-        for r in range(h):
-            row_rgb = rgb_array[r]
-            row_chars = chars_array[r]
-            line_parts: list[str] = []
-            last_r, last_g, last_b = -1, -1, -1
-
-            for c in range(w):
-                cr = int(row_rgb[c, 0])
-                cg = int(row_rgb[c, 1])
-                cb = int(row_rgb[c, 2])
-
-                if cr != last_r or cg != last_g or cb != last_b:
-                    line_parts.append(f"\x1b[38;2;{cr};{cg};{cb}m")
-                    last_r, last_g, last_b = cr, cg, cb
-
-                line_parts.append(row_chars[c])
-
-            # Append \x1b[K to clear any trailing characters from previous wider frames
-            line_parts.append("\x1b[K")
-            lines.append("".join(line_parts))
-
-        return "\n".join(lines) + "\x1b[0m\x1b[K"
+        thresh = self.color_threshold if threshold is None else int(threshold)
+        return fast_serialize_truecolor(rgb_array, chars_array, threshold=thresh)
 
     def serialize_monochrome(self, chars_array: np.ndarray) -> str:
         """Serialize glyph characters without color escape sequences."""

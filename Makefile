@@ -4,11 +4,18 @@ LAUNCHER = arcade.exe
 
 ifeq ($(OS),Windows_NT)
   CLEAN_CMD = -cmd /C "del /Q /F $(LAUNCHER) src\main.o 2>nul" || exit 0
+  FAST_SERIALIZER = ascii_video/fast_serializer.dll
+  CLEAN_FAST_SERIALIZER = -cmd /C "del /Q /F ascii_video\fast_serializer.dll 2>nul" || exit 0
 else
   CLEAN_CMD = rm -f $(LAUNCHER) src/main.o
+  FAST_SERIALIZER = ascii_video/fast_serializer.so
+  CLEAN_FAST_SERIALIZER = rm -f ascii_video/fast_serializer.so
 endif
 
-all: $(LAUNCHER) tetris 2048 minesweeper snake invaders sudoku breaker block pong typing wordle flappy blackjack solitaire chess jigsaw life gyro
+all: $(LAUNCHER) tetris 2048 minesweeper snake invaders sudoku breaker block pong typing wordle flappy blackjack solitaire chess jigsaw life gyro $(FAST_SERIALIZER)
+
+$(FAST_SERIALIZER): ascii_video/fast_serializer.c
+	$(CC) -O3 -shared -fPIC -o $@ $<
 
 $(LAUNCHER): src/main.c
 	$(CC) $(CFLAGS) -o $@ $<
@@ -95,6 +102,7 @@ test-ascii-video:
 
 clean:
 	$(CLEAN_CMD)
+	$(CLEAN_FAST_SERIALIZER)
 	$(MAKE) -C games/tetris clean
 	$(MAKE) -C games/2048 clean
 	$(MAKE) -C games/minesweeper clean
