@@ -99,7 +99,8 @@ class AsciiVideoPlayer:
             drop_frames: Drop lagging frames to maintain exact real-world 1.0x playback speed.
             num_workers: Number of background conversion worker threads.
         """
-        self.video_path = Path(video_path)
+        clean_path = str(video_path).rstrip("/\\")
+        self.video_path = Path(clean_path)
         self.converter = converter or AsciiConverter()
         self.override_width = width
         self.override_height = height
@@ -331,8 +332,31 @@ class AsciiVideoPlayer:
             self.pipeline.start(start_frame=0)
 
         try:
-            start_time = time.perf_counter()
+            start_time: Optional[float] = None
             start_frame_idx = 0
+
+            # Warmup: fetch initial frame to guarantee instant display on launch
+            if use_pipeline and self.pipeline:
+                init_frame = self.pipeline.get_frame(timeout=2.0)
+                if init_frame is not None:
+                    f_idx, ascii_text, bgr_frame = init_frame
+                    if self.total_frames > 0:
+                        self.current_frame_idx = (f_idx % self.total_frames) + 1
+                    else:
+                        self.current_frame_idx = f_idx + 1
+                    self.last_frame = bgr_frame
+                    term_cols, term_lines = shutil.get_terminal_size((80, 24))
+                    if not headless:
+                        status_line = self.build_status_line(current_measured_fps, term_cols)
+                        sys.stdout.write(f"\x1b[H{ascii_text}\n{status_line}\x1b[0m\x1b[K")
+                        sys.stdout.flush()
+                    if on_frame_rendered:
+                        on_frame_rendered(self.current_frame_idx, ascii_text)
+                    frames_rendered += 1
+                    if max_frames is not None and frames_rendered >= max_frames:
+                        return
+                    start_time = time.perf_counter()
+                    start_frame_idx = self.current_frame_idx
 
             while not self.stopped:
                 # Key processing
@@ -369,11 +393,16 @@ class AsciiVideoPlayer:
 
                 if pause_start is not None:
                     # Account for paused duration
-                    start_time += (time.perf_counter() - pause_start)
+                    if start_time is not None:
+                        start_time += (time.perf_counter() - pause_start)
                     pause_start = None
 
                 if state_changed:
                     # Resync playback clock anchor after seek or restart
+                    start_time = time.perf_counter()
+                    start_frame_idx = self.current_frame_idx
+
+                if start_time is None:
                     start_time = time.perf_counter()
                     start_frame_idx = self.current_frame_idx
 
@@ -382,20 +411,30 @@ class AsciiVideoPlayer:
                 elapsed = now - start_time
                 target_frame = start_frame_idx + int(elapsed * self.effective_fps)
 
-                if use_pipeline and self.pipeline:
-                    # Drop lagging frames if conversion or terminal I/O fell behind
-                    if self.drop_frames and target_frame > self.current_frame_idx:
-                        dropped = self.pipeline.drop_to(target_frame)
-                        self.dropped_frames += dropped
+                # Resync wall-clock anchor if lagging by > 0.5s to prevent infinite target drift
+                if target_frame - self.current_frame_idx > max(15, int(0.5 * self.effective_fps)):
+                    start_time = time.perf_counter()
+                    start_frame_idx = self.current_frame_idx
+                    target_frame = start_frame_idx
 
-                    # Fetch frame from prefetch pipeline
-                    frame_data = self.pipeline.get_frame(timeout=frame_duration)
+                if use_pipeline and self.pipeline:
+                    # Drop lagging buffer frames if conversion fell behind
+                    if self.drop_frames and target_frame > self.current_frame_idx:
+                        self.pipeline.drop_to(target_frame)
+                        self.dropped_frames = self.pipeline.dropped_count
+
+                    # Fetch frame from prefetch pipeline matching target_frame
+                    frame_data = self.pipeline.get_frame(
+                        target_frame_idx=target_frame if self.drop_frames else None,
+                        timeout=frame_duration,
+                    )
                     if frame_data is None:
                         if self.pipeline.is_eof():
                             break
                         continue
 
                     f_idx, ascii_text, bgr_frame = frame_data
+                    self.dropped_frames = self.pipeline.dropped_count
                     if self.total_frames > 0:
                         self.current_frame_idx = (f_idx % self.total_frames) + 1
                     else:

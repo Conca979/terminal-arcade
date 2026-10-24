@@ -58,6 +58,7 @@ class FramePipeline:
         self._next_frame_idx = 0
         self._reader_frame_idx = 0
         self._flush_generation = 0
+        self.dropped_count = 0
 
         self._reader_thread: Optional[threading.Thread] = None
         self._worker_threads: list[threading.Thread] = []
@@ -90,18 +91,6 @@ class FramePipeline:
         while not self._stopped:
             with self._cond:
                 gen = self._flush_generation
-                # If reader is behind consumer target, fast-forward using grab()
-                target_ahead = self._next_frame_idx - self._reader_frame_idx
-                if target_ahead > 0:
-                    with self._cap_lock:
-                        for _ in range(target_ahead):
-                            if not self.cap.grab():
-                                break
-                            self._reader_frame_idx += 1
-                            if self._flush_generation != gen or self._stopped:
-                                break
-                    if self._flush_generation != gen or self._stopped:
-                        continue
 
             with self._cap_lock:
                 ret, frame = self.cap.read()
@@ -157,7 +146,7 @@ class FramePipeline:
             frame_idx, frame, target_w, target_h, gen = item
 
             with self._cond:
-                if gen != self._flush_generation or self._stopped or frame_idx < self._next_frame_idx:
+                if gen != self._flush_generation or self._stopped:
                     self._decode_queue.task_done()
                     continue
 
@@ -165,14 +154,22 @@ class FramePipeline:
             ascii_text, _, _ = self.converter.convert_frame(frame, target_w, target_h)
 
             with self._cond:
-                if gen == self._flush_generation and not self._stopped and frame_idx >= self._next_frame_idx:
+                if gen == self._flush_generation and not self._stopped:
                     self._results[frame_idx] = (ascii_text, frame)
                     self._cond.notify_all()
 
             self._decode_queue.task_done()
 
-    def get_frame(self, timeout: float = 0.1) -> Optional[Tuple[int, str, np.ndarray]]:
-        """Retrieve the next sequential frame.
+    def get_frame(
+        self,
+        target_frame_idx: Optional[int] = None,
+        timeout: float = 0.1,
+    ) -> Optional[Tuple[int, str, np.ndarray]]:
+        """Retrieve the next frame, or freshest frame matching target_frame_idx.
+
+        Args:
+            target_frame_idx: Optional target frame index for wall-clock pacing.
+            timeout: Maximum seconds to wait for frame availability.
 
         Returns:
             Tuple of (frame_index, ascii_text, bgr_frame), or None on timeout/EOF.
@@ -181,6 +178,20 @@ class FramePipeline:
 
         with self._cond:
             while not self._stopped:
+                # If target_frame_idx is given and we have completed frames up to target
+                if target_frame_idx is not None and self._results:
+                    candidates = [k for k in self._results.keys() if self._next_frame_idx <= k <= target_frame_idx]
+                    if candidates:
+                        best = max(candidates)
+                        for k in list(self._results.keys()):
+                            if self._next_frame_idx <= k < best:
+                                del self._results[k]
+                                self.dropped_count += 1
+                        ascii_text, frame = self._results.pop(best)
+                        self._next_frame_idx = best + 1
+                        return (best, ascii_text, frame)
+
+                # Strict sequential retrieval for next_frame_idx
                 if self._next_frame_idx in self._results:
                     ascii_text, frame = self._results.pop(self._next_frame_idx)
                     idx = self._next_frame_idx
@@ -199,26 +210,23 @@ class FramePipeline:
         return None
 
     def drop_to(self, target_frame_idx: int) -> int:
-        """Drop lagging frames up to target_frame_idx.
+        """Drop completed buffer frames strictly older than target_frame_idx.
 
         Returns:
-            Count of frames successfully dropped.
+            Count of frames successfully dropped from buffer.
         """
         dropped = 0
         with self._cond:
-            if target_frame_idx <= self._next_frame_idx:
+            if not self._results or target_frame_idx <= self._next_frame_idx:
                 return 0
 
-            # Discard any buffered frames older than target_frame_idx
             keys_to_drop = [k for k in self._results.keys() if k < target_frame_idx]
             for k in keys_to_drop:
                 del self._results[k]
+                dropped += 1
 
-            dropped = target_frame_idx - self._next_frame_idx
-            self._next_frame_idx = target_frame_idx
-            self._cond.notify_all()
-
-        return dropped
+            self.dropped_count += dropped
+            return dropped
 
     def flush(self, new_pos: Optional[int] = None) -> None:
         """Clear all buffered frames and restart prefetching immediately."""

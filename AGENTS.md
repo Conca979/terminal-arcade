@@ -256,10 +256,13 @@ ascii_video/
    - Decoupled multithreaded producer-consumer pipeline: background reader thread decodes frames while concurrent worker threads convert frames across available CPU cores.
    - Strictly ordered frame sequencing buffer with generation tracking and thread-safe capture synchronization (`_cap_lock`) for instant, hang-free flushes on seek or resize.
    - Persistent reader thread lifecycle waiting on EOF for downstream rewinds and looping.
-   - Fast-forward frame grabbing via OpenCV `cap.grab()` when skipping lagging frames.
+   - In-buffer frame dropping: eliminates reader grab starvation storms on high-resolution 4K video by discarding completed lagging frames directly from the prefetch buffer.
 
 4. **`ascii_video/player.py`**:
-   - Clock-synchronized pacing strictly tied to wall-clock time (`time.perf_counter()`), automatically dropping lagging frames to guarantee exact 1.0x real-world playback speed without slow motion.
+   - Clock-synchronized pacing strictly tied to wall-clock time (time.perf_counter()), automatically dropping lagging buffer frames to guarantee exact 1.0x real-world playback speed without slow motion.
+   - Initial frame warmup: decodes and renders frame 0 immediately upon startup to guarantee zero blank-screen delay.
+   - Periodic wall-clock drift resynchronization preventing infinite frame drops on demanding 4K/60 FPS streams.
+   - Path sanitization cleanly stripping trailing slashes or backslashes from CLI arguments.
    - Seamless loop wrapping (`loop=True`) with monotonic stream frame indexing and modulo display.
    - Manages interactive playback lifecycle, status bar formatting, dynamic terminal resize polling (`shutil.get_terminal_size()`), and non-blocking keyboard decoding (`msvcrt` on Windows with POSIX fallback).
    - Instant visual feedback during pause: re-renders frame immediately on mode change, contrast change, seek, or terminal resize.
@@ -305,7 +308,7 @@ ascii_video/
 - [x] Dynamic terminal resize adaptation via `shutil.get_terminal_size()`
 - [x] Command-line interface with options for workers, color threshold, and frame dropping (`ascii_video/cli.py`)
 - [x] Synthetic sample generator for headless environments and demonstration (`ascii_video/sample_generator.py`)
-- [x] Automated unit, integration, and performance test suite (51/51 tests passing)
+- [x] Automated unit, integration, and performance test suite (53/53 tests passing)
 - [x] Packaging configuration (`pyproject.toml`, `ascii_video/requirements.txt`)
 - [x] Root Makefile integration (`ascii-video`, `test-ascii-video`, fast_serializer build target, hooked into `make test`)
 - [x] Documentation adhering to plain markdown and relative paths (`ascii_video/README.md`, `README.md`, `AGENTS.md`)

@@ -263,3 +263,37 @@ class TestPerformanceAndOptimization:
         assert player.dropped_frames > 0
         assert rendered_frames != [1, 2, 3, 4]
 
+    def test_pipeline_no_starvation_under_high_target_advance(self, test_video: Path) -> None:
+        """Verify pipeline never starves or drops frames into void when clock leaps ahead."""
+        cap = cv2.VideoCapture(str(test_video))
+        conv = AsciiConverter()
+        pipeline = FramePipeline(
+            cap=cap,
+            converter=conv,
+            dimensions_provider=lambda: (40, 20),
+            num_workers=2,
+            queue_size=4,
+        )
+        pipeline.start(start_frame=0)
+
+        # Warmup
+        f0 = pipeline.get_frame(timeout=1.0)
+        assert f0 is not None and f0[0] == 0
+
+        # Simulate large clock leap ahead (target_frame=20 when only 3 frames generated)
+        f_next = pipeline.get_frame(target_frame_idx=20, timeout=1.0)
+        assert f_next is not None
+        assert f_next[0] > 0
+
+        pipeline.stop()
+        cap.release()
+
+    def test_trailing_slash_path_handling(self, test_video: Path) -> None:
+        """Verify player cleanly sanitizes video paths with trailing slashes/backslashes."""
+        path_with_slash = str(test_video) + "\\"
+        player = AsciiVideoPlayer(path_with_slash, num_workers=0)
+        assert player.video_path.exists()
+        cap = player._open_capture()
+        assert cap.isOpened()
+        cap.release()
+
