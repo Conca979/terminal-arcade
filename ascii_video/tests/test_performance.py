@@ -188,3 +188,78 @@ class TestPerformanceAndOptimization:
 
         assert rendered_frames == [1, 2, 3, 4, 5]
         assert player.dropped_frames == 0
+
+    def test_pipeline_flush_without_new_pos_resumes_cleanly(self, test_video: Path) -> None:
+        """Verify pipeline flush without new_pos resumes prefetch from current frame."""
+        player = AsciiVideoPlayer(test_video, width=40, height=20, drop_frames=False, num_workers=2)
+        rendered_frames = []
+
+        def callback(idx: int, _txt: str) -> None:
+            rendered_frames.append(idx)
+            if idx == 3:
+                # Mid-playback flush (simulates terminal resize or mode change)
+                assert player.pipeline is not None
+                player.pipeline.flush()
+
+        player.play(headless=True, max_frames=6, on_frame_rendered=callback)
+
+        assert rendered_frames == [1, 2, 3, 4, 5, 6]
+
+    def test_pipeline_looping_playback_continuous(self, tmp_path: Path) -> None:
+        """Verify looping video plays continuously past video length without deadlock."""
+        short_video = tmp_path / "short_loop.mp4"
+        create_test_video(short_video, duration_sec=0.4, fps=10, dimensions=(80, 60))
+
+        player = AsciiVideoPlayer(short_video, width=40, height=20, loop=True, num_workers=2)
+        rendered_frames = []
+
+        def callback(idx: int, _txt: str) -> None:
+            rendered_frames.append(idx)
+
+        # Play 8 frames on a 4-frame video to verify wrapping across loop boundary
+        player.play(headless=True, max_frames=8, on_frame_rendered=callback)
+
+        assert len(rendered_frames) == 8
+        assert rendered_frames == [1, 2, 3, 4, 1, 2, 3, 4]
+
+    def test_pipeline_no_last_frame_cutoff_at_eof(self, tmp_path: Path) -> None:
+        """Verify all frames are rendered to completion and final frame is not truncated at EOF."""
+        short_video = tmp_path / "eof_test.mp4"
+        create_test_video(short_video, duration_sec=1.0, fps=10, dimensions=(80, 60))
+
+        player = AsciiVideoPlayer(short_video, width=40, height=20, drop_frames=False, num_workers=2)
+        rendered_frames = []
+
+        player.play(headless=True, on_frame_rendered=lambda idx, _txt: rendered_frames.append(idx))
+
+        assert len(rendered_frames) == 10
+        assert rendered_frames == list(range(1, 11))
+
+    def test_c_serializer_big_endian_parity(self) -> None:
+        """Verify C serializer correctly handles big-endian Unicode glyph arrays."""
+        rgb = np.zeros((2, 3, 3), dtype=np.uint8)
+        chars = np.array([["A", "B", "C"], ["X", "Y", "Z"]], dtype=">U1")
+
+        out_c = serialize_truecolor(rgb, chars, threshold=8)
+        out_np = serialize_truecolor_numpy(rgb, chars, threshold=8)
+
+        assert out_c == out_np
+        assert "ABC" in out_c
+        assert "XYZ" in out_c
+
+    def test_synchronous_frame_dropping_paces_correctly(self, test_video: Path) -> None:
+        """Verify synchronous fallback mode (0 workers) drops frames under simulated delay."""
+        player = AsciiVideoPlayer(test_video, width=40, height=20, drop_frames=True, num_workers=0)
+        rendered_frames = []
+
+        def slow_callback(idx: int, _txt: str) -> None:
+            rendered_frames.append(idx)
+            # Inject delay greater than frame interval (0.22s at 10 FPS)
+            time.sleep(0.22)
+
+        player.play(headless=True, max_frames=4, on_frame_rendered=slow_callback)
+
+        assert len(rendered_frames) == 4
+        assert player.dropped_frames > 0
+        assert rendered_frames != [1, 2, 3, 4]
+

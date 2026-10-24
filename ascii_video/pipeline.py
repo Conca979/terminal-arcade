@@ -24,6 +24,7 @@ class FramePipeline:
         num_workers: int = 2,
         queue_size: int = 4,
         loop: bool = False,
+        total_frames: int = 0,
     ) -> None:
         """Initialize prefetch pipeline.
 
@@ -34,6 +35,7 @@ class FramePipeline:
             num_workers: Number of concurrent frame conversion worker threads.
             queue_size: Capacity of raw and converted frame buffers.
             loop: Whether to loop video capture to beginning upon EOF.
+            total_frames: Total frame count of the source video for loop wrapping.
         """
         self.cap = cap
         self.converter = converter
@@ -41,11 +43,13 @@ class FramePipeline:
         self.num_workers = max(1, int(num_workers))
         self.queue_size = max(2, int(queue_size))
         self.loop = loop
+        self.total_frames = max(0, int(total_frames))
 
         self._stopped = False
         self._eof = False
         self._lock = threading.Lock()
         self._cond = threading.Condition(self._lock)
+        self._cap_lock = threading.Lock()
 
         self._decode_queue: queue.Queue[Optional[Tuple[int, np.ndarray, int, int, int]]] = queue.Queue(
             maxsize=self.queue_size
@@ -82,34 +86,45 @@ class FramePipeline:
 
     def _reader_loop(self) -> None:
         """Reader thread: decodes frames from VideoCapture and feeds decode_queue."""
+        consecutive_read_failures = 0
         while not self._stopped:
             with self._cond:
                 gen = self._flush_generation
-                # If reader is significantly behind consumer target, fast-forward using grab()
+                # If reader is behind consumer target, fast-forward using grab()
                 target_ahead = self._next_frame_idx - self._reader_frame_idx
-                if target_ahead > 2:
-                    for _ in range(target_ahead - 1):
-                        if not self.cap.grab():
-                            break
-                        self._reader_frame_idx += 1
-                        if self._flush_generation != gen or self._stopped:
-                            break
+                if target_ahead > 0:
+                    with self._cap_lock:
+                        for _ in range(target_ahead):
+                            if not self.cap.grab():
+                                break
+                            self._reader_frame_idx += 1
+                            if self._flush_generation != gen or self._stopped:
+                                break
                     if self._flush_generation != gen or self._stopped:
                         continue
 
-            ret, frame = self.cap.read()
+            with self._cap_lock:
+                ret, frame = self.cap.read()
+
             if not ret:
                 with self._cond:
                     if self._flush_generation != gen or self._stopped:
                         continue
                     if self.loop:
-                        self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
-                        self._reader_frame_idx = 0
+                        consecutive_read_failures += 1
+                        with self._cap_lock:
+                            self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                        if consecutive_read_failures >= 5:
+                            time.sleep(0.02)
                         continue
                     else:
                         self._eof = True
                         self._cond.notify_all()
-                        break
+                        while not self._stopped and self._eof and self._flush_generation == gen:
+                            self._cond.wait(timeout=0.05)
+                        continue
+
+            consecutive_read_failures = 0
 
             with self._cond:
                 if self._flush_generation != gen or self._stopped:
@@ -142,7 +157,7 @@ class FramePipeline:
             frame_idx, frame, target_w, target_h, gen = item
 
             with self._cond:
-                if gen != self._flush_generation or self._stopped:
+                if gen != self._flush_generation or self._stopped or frame_idx < self._next_frame_idx:
                     self._decode_queue.task_done()
                     continue
 
@@ -150,7 +165,7 @@ class FramePipeline:
             ascii_text, _, _ = self.converter.convert_frame(frame, target_w, target_h)
 
             with self._cond:
-                if gen == self._flush_generation and not self._stopped:
+                if gen == self._flush_generation and not self._stopped and frame_idx >= self._next_frame_idx:
                     self._results[frame_idx] = (ascii_text, frame)
                     self._cond.notify_all()
 
@@ -172,7 +187,7 @@ class FramePipeline:
                     self._next_frame_idx += 1
                     return (idx, ascii_text, frame)
 
-                if self._eof and not self._results:
+                if self._eof and self._next_frame_idx >= self._reader_frame_idx and not self._results:
                     return None
 
                 remaining = end_time - time.perf_counter()
@@ -220,9 +235,13 @@ class FramePipeline:
             self._results.clear()
 
             if new_pos is not None:
-                self.cap.set(cv2.CAP_PROP_POS_FRAMES, max(0, new_pos))
                 self._next_frame_idx = max(0, new_pos)
-                self._reader_frame_idx = max(0, new_pos)
+
+            target_pos = self._next_frame_idx
+            phys_pos = target_pos % self.total_frames if self.total_frames > 0 else target_pos
+            with self._cap_lock:
+                self.cap.set(cv2.CAP_PROP_POS_FRAMES, max(0, phys_pos))
+            self._reader_frame_idx = target_pos
 
             self._eof = False
             self._cond.notify_all()
@@ -234,7 +253,7 @@ class FramePipeline:
     def is_eof(self) -> bool:
         """Check if pipeline has reached end-of-file and output is exhausted."""
         with self._cond:
-            return self._eof and len(self._results) == 0
+            return self._eof and self._next_frame_idx >= self._reader_frame_idx and len(self._results) == 0
 
     def stop(self) -> None:
         """Stop all background worker threads and join."""

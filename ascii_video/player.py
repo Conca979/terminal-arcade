@@ -204,13 +204,12 @@ class AsciiVideoPlayer:
         if key in ("r", "R"):
             if self.pipeline:
                 self.pipeline.seek(0)
-            cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
-            self.current_frame_idx = 0
-            if not self.pipeline:
+            else:
+                cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
                 ret, frame = cap.read()
                 if ret:
                     self.last_frame = frame
-                    self.current_frame_idx = int(cap.get(cv2.CAP_PROP_POS_FRAMES))
+            self.current_frame_idx = 0
             return True
 
         # Contrast adjustment
@@ -231,13 +230,12 @@ class AsciiVideoPlayer:
             target = max(0, self.current_frame_idx - seek_frames)
             if self.pipeline:
                 self.pipeline.seek(target)
-            cap.set(cv2.CAP_PROP_POS_FRAMES, target)
-            self.current_frame_idx = target
-            if not self.pipeline:
+            else:
+                cap.set(cv2.CAP_PROP_POS_FRAMES, target)
                 ret, frame = cap.read()
                 if ret:
                     self.last_frame = frame
-                    self.current_frame_idx = int(cap.get(cv2.CAP_PROP_POS_FRAMES))
+            self.current_frame_idx = target
             return True
 
         # Seek forward 5 seconds
@@ -246,13 +244,12 @@ class AsciiVideoPlayer:
             target = min(max(0, self.total_frames - 1), self.current_frame_idx + seek_frames)
             if self.pipeline:
                 self.pipeline.seek(target)
-            cap.set(cv2.CAP_PROP_POS_FRAMES, target)
-            self.current_frame_idx = target
-            if not self.pipeline:
+            else:
+                cap.set(cv2.CAP_PROP_POS_FRAMES, target)
                 ret, frame = cap.read()
                 if ret:
                     self.last_frame = frame
-                    self.current_frame_idx = int(cap.get(cv2.CAP_PROP_POS_FRAMES))
+            self.current_frame_idx = target
             return True
 
         return False
@@ -303,7 +300,7 @@ class AsciiVideoPlayer:
             sys.stdout.flush()
 
         frame_duration = 1.0 / max(1.0, self.effective_fps)
-        last_terminal_size = (0, 0)
+        last_terminal_size = shutil.get_terminal_size((80, 24))
         frames_rendered = 0
         fps_tracker_time = time.perf_counter()
         fps_counter = 0
@@ -329,6 +326,7 @@ class AsciiVideoPlayer:
                 dimensions_provider=get_dimensions,
                 num_workers=self.num_workers,
                 loop=self.loop,
+                total_frames=self.total_frames,
             )
             self.pipeline.start(start_frame=0)
 
@@ -398,12 +396,15 @@ class AsciiVideoPlayer:
                         continue
 
                     f_idx, ascii_text, bgr_frame = frame_data
-                    self.current_frame_idx = f_idx + 1
+                    if self.total_frames > 0:
+                        self.current_frame_idx = (f_idx % self.total_frames) + 1
+                    else:
+                        self.current_frame_idx = f_idx + 1
                     self.last_frame = bgr_frame
                 else:
                     # Synchronous fallback with frame-dropping
-                    if self.drop_frames and target_frame > self.current_frame_idx + 1:
-                        skip_count = target_frame - (self.current_frame_idx + 1)
+                    if self.drop_frames and target_frame > self.current_frame_idx:
+                        skip_count = target_frame - self.current_frame_idx
                         for _ in range(skip_count):
                             if not cap.grab():
                                 break

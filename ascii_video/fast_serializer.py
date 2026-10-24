@@ -7,6 +7,7 @@ import os
 import shutil
 import subprocess
 import sys
+import threading
 from pathlib import Path
 from typing import Optional
 
@@ -14,6 +15,7 @@ import numpy as np
 
 _LIB: Optional[ctypes.CDLL] = None
 _LIB_TRIED = False
+_LIB_LOCK = threading.Lock()
 
 
 def _get_lib_path() -> Path:
@@ -58,36 +60,40 @@ def get_c_library() -> Optional[ctypes.CDLL]:
     global _LIB, _LIB_TRIED
     if _LIB is not None:
         return _LIB
-    if _LIB_TRIED:
-        return None
 
-    _LIB_TRIED = True
-    lib_path = _get_lib_path()
-
-    if not lib_path.exists():
-        compiled = _compile_c_library()
-        if compiled is not None:
-            lib_path = compiled
-
-    if lib_path.exists():
-        try:
-            lib = ctypes.CDLL(str(lib_path))
-            lib.serialize_truecolor.restype = ctypes.c_int
-            lib.serialize_truecolor.argtypes = [
-                ctypes.c_void_p,  # rgb (uint8*)
-                ctypes.c_void_p,  # chars (uint32*)
-                ctypes.c_int,     # height
-                ctypes.c_int,     # width
-                ctypes.c_int,     # threshold
-                ctypes.c_char_p,  # out buffer
-                ctypes.c_int,     # max_len
-            ]
-            _LIB = lib
+    with _LIB_LOCK:
+        if _LIB is not None:
             return _LIB
-        except Exception:
-            _LIB = None
+        if _LIB_TRIED:
+            return None
 
-    return None
+        _LIB_TRIED = True
+        lib_path = _get_lib_path()
+
+        if not lib_path.exists():
+            compiled = _compile_c_library()
+            if compiled is not None:
+                lib_path = compiled
+
+        if lib_path.exists():
+            try:
+                lib = ctypes.CDLL(str(lib_path))
+                lib.serialize_truecolor.restype = ctypes.c_int
+                lib.serialize_truecolor.argtypes = [
+                    ctypes.c_void_p,  # rgb (uint8*)
+                    ctypes.c_void_p,  # chars (uint32*)
+                    ctypes.c_int,     # height
+                    ctypes.c_int,     # width
+                    ctypes.c_int,     # threshold
+                    ctypes.c_char_p,  # out buffer
+                    ctypes.c_int,     # max_len
+                ]
+                _LIB = lib
+                return _LIB
+            except Exception:
+                _LIB = None
+
+        return None
 
 
 def is_c_accelerated() -> bool:
@@ -124,9 +130,10 @@ def serialize_truecolor_c(
     else:
         rgb_c = rgb_array
 
-    # View glyph array as contiguous uint32 array of Unicode code points
-    if chars_array.dtype != np.dtype("<U1") and chars_array.dtype != np.dtype(">U1"):
-        chars_str = chars_array.astype("<U1")
+    # View glyph array as contiguous uint32 array of Unicode code points (native endian)
+    native_u1 = np.dtype("=U1")
+    if chars_array.dtype != native_u1:
+        chars_str = chars_array.astype(native_u1)
         chars_u32 = np.ascontiguousarray(chars_str.view(np.uint32))
     else:
         chars_u32 = np.ascontiguousarray(chars_array.view(np.uint32))
@@ -194,7 +201,9 @@ def serialize_truecolor_numpy(
             dg = cg - last_g
             db = cb - last_b
 
-            if threshold <= 0:
+            if c == 0:
+                change = True
+            elif threshold <= 0:
                 change = (dr != 0 or dg != 0 or db != 0)
             else:
                 change = (dr * dr + dg * dg + db * db > thresh_sq)

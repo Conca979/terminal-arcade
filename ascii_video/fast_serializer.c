@@ -18,6 +18,10 @@
  * Returns number of bytes written (1 to 4).
  */
 static inline int encode_utf8(uint32_t cp, char *out) {
+    if (cp == 0) {
+        out[0] = ' ';
+        return 1;
+    }
     if (cp <= 0x7F) {
         out[0] = (char)cp;
         return 1;
@@ -115,11 +119,13 @@ EXPORT int serialize_truecolor(
             int dg = cg - last_g;
             int db = cb - last_b;
 
-            int change;
-            if (threshold <= 0) {
-                change = (dr != 0 || dg != 0 || db != 0);
-            } else {
-                change = (dr * dr + dg * dg + db * db > thresh_sq);
+            int change = (c == 0);
+            if (!change) {
+                if (threshold <= 0) {
+                    change = (dr != 0 || dg != 0 || db != 0);
+                } else {
+                    change = (dr * dr + dg * dg + db * db > thresh_sq);
+                }
             }
 
             if (change) {
