@@ -11,147 +11,25 @@ A modular, high-performance collection of classic games, ASCII art, 3D terminal 
 
 ## Games Included
 
-### 1. Tetris CLI (`games/tetris/`)
-Classic Guideline Tetris featuring:
-- Super Rotation System (SRS) with full wall and floor kicks
-- 7-Bag fair piece randomizer
-- Ghost piece projection & Hold piece box
-- 3-piece Next Queue preview
-- 500 ms lock delay with move/rotate resets
-- Visual row-clear flash animations
-
-### 2. 2048 CLI (`games/2048/`)
-Tile-sliding mathematical puzzle featuring:
-- 4x4 sliding grid with true power-of-two merge logic
-- **32-step Undo History** (`U` key)
-- Custom ANSI TrueColor palette for every tile value (2 to 4096+)
-- Win banner upon reaching 2048 tile with option to continue playing
-- Dual controls: Arrows, WASD, and Vim (`HJKL`)
-
-### 3. Minesweeper CLI (`games/minesweeper/`)
-Full-featured minefield sweeper featuring:
-- **First-Click Safety Guarantee** (initial reveal is never a mine)
-- Recursive flood-fill for zero-neighbor cells
-- Chord reveal (`C` key) to quickly uncover neighbors
-- Flagging system (`F` key) with remaining mine counter
-- 3 Difficulty presets: Beginner (9x9, 10 mines), Intermediate (16x16, 40 mines), Expert (30x16, 99 mines)
-- Live stopwatch timer & best time records
-
-### 4. Cyberpunk Snake (`games/snake/`)
-Retro-futuristic light-cycle snake featuring:
-- Neon Synthwave gradient trail from electric cyan to hot magenta
-- **Cyber Food Chips**: Data Packets (`+10`), Timed Cyber Cores (`+50`), Overclock Chips (`2x` score), and Phase Shift (wall walk)
-- Smooth dynamic speed acceleration curve as snake grows
-- Dual arena navigation: Solid Lethal Walls vs. Toroidal Wrap-Around (`M` key)
-- Persistent high score tracking
-
-### 5. Space Invaders (`games/invaders/`)
-Classic arcade alien shooter featuring:
-- 32-alien marching swarm with 2-frame retro animations
-- Accelerating marching rhythm as the alien swarm thins out
-- 4 Destructible defense barricades / bunkers with erosion physics
-- Alien bomb drops and mystery mothership (UFO) fly-bys
-- Multi-wave progression and persistent high score tracking
-
-### 6. Sudoku CLI (`games/sudoku/`)
-Logic number puzzle featuring:
-- Procedural board generation with unique solutions across 4 difficulty levels
-- Candidate pencil notes mode (`N` key) for draft calculations
-- Side-by-side Cell Inspector panel with valid candidates and remaining digit counts
-- Crosshair and identical number highlights with real-time conflict checking
-- 64-step undo stack (`U`) and hint assistant (`H`)
-
-### 7. Neon Balls Bricks Breaker (`games/breaker/`)
-Physics-based casual arcade puzzle featuring:
-- High-resolution arena (~96 × 42) optimized for large console displays
-- Real-time mouse trajectory laser aiming with multi-wall bounce preview
-- Left-click or Space to fire streaming ball swarms; right-click for 3x Turbo mode
-- Endless mode with escalating brick health and danger line threshold
-- Persistent auto-save system that seamlessly preserves and resumes runs
-
-### 8. Classic Wood Block Puzzle (`games/block/`)
-Classic 10×10 wooden tile puzzle featuring:
-- High-fidelity 10×10 grid layout with side-by-side stats and 3-piece candidate tray
-- Real-time mouse picking & placement with glowing emerald/crimson ghost placement preview
-- Dual controls: Point-and-click mouse or keyboard (`1-3` slots, `WASD`/`Arrows`, `Space`/`Enter`)
-- Simultaneous horizontal and vertical cross-line clears with progressive streak multipliers
-- 25 polyomino shapes with automatic tray refill upon exhaustion
-- Endless mode with persistent auto-save and seamless resume
-
-### 9. Classic Pong (`games/pong/`)
-Retro table tennis arcade game featuring:
-- High-speed 60 FPS physics with angle deflection and velocity acceleration
-- Player vs. CPU with 3 selectable AI difficulty modes (Easy, Medium, Hard)
-- First-to-11 championship match rules with retro segmented scoreboard
-- Persistent auto-save system and high scores tracking
-
-### 10. Cyber Citadel Typing Defense (`games/typing/`)
-Fast-paced space defense typing shooter featuring:
-- 5,800+ English word vocabulary scaled dynamically across waves
-- 4 Enemy variants: Normal drones, Fast interceptors, Tank dreadnoughts, and EMP bombs
-- Citadel particle explosions, laser cannon targeting, and combo multipliers
-- Live Words Per Minute (WPM) and typing accuracy metrics
-- Persistent auto-save system and centralized score tracking
-
-### 11. Wordle CLI (`games/wordle/`)
-Classic 5-letter word puzzle featuring:
-- Standard Wordle color clues: Green (Correct), Yellow (Present), and Gray (Absent)
-- Two-pass duplicate letter evaluation matching official rules
-- 14,800+ word valid dictionary and 476 curated secret solution words
-- Live statistics panel with win rate, current/best streak, and 6-bar guess distribution
-- QWERTY virtual keyboard clue tracker
-- Persistent auto-save system and centralized high score tracking
-
-### 12. Flappy Bird CLI (`games/flappy/`)
-Authentic retro arcade flight avoider featuring:
-- High-fidelity flight physics with gravity, flap impulses, and velocity clamping
-- Procedurally generated scrolling pipe obstacles with randomized gaps
-- Multi-layer twilight sky with parallax drifting cloud scenery and scrolling soil texture
-- 4-Tier medal achievements: Bronze (10+), Silver (20+), Gold (30+), and Platinum (40+)
-- Compact 21-line rendering viewport for rock-solid flicker-free play on standard terminals
-- Persistent auto-save system and centralized high score tracking
-
-### 13. Blackjack 21 (`games/blackjack/`)
-Classic casino table card game featuring:
-- 6-Deck shoe (312 cards) with Fisher-Yates shuffle and ~75% penetration cut card
-- Dealer rules: Dealer stands on all 17s (hard and soft 17) and hits on 16 or lower
-- Natural 21 Blackjack paying 3:2, Insurance paying 2:1, Double Down, Pair Splitting, and Late Surrender
-- 7×5 ASCII playing cards with vibrant red and cyan-white suits (Spades, Hearts, Diamonds, Clubs)
-- Interactive chip betting console with quick presets ($10, $25, $50, $100, $500) and All-In
-- Persistent bankroll, peak record chips, and hands won tracking in `arcade_scores.ini`
-
-### 14. Klondike Solitaire (`games/solitaire/`)
-Classic patience card game featuring:
-- Standard 52-card deck with Fisher-Yates shuffle
-- 7-Column tableau with descending alternating-color builds and auto-reveal of exposed face-down cards
-- 4 Foundation piles (Ace to King), draw-1 stockpile with waste recycle
-- Dual control schemes: Fast key commands (`S`, `W`, `1-7`, `F`), full cursor navigation, or point-and-click mouse support (right-click to auto-foundation)
-- Deep 64-step undo history (`U`), smart hint assistant (`H`), and one-touch auto-foundation solver (`A`)
-- Spacious 27-line × 95-column viewport layout with zero vertical jitter and centralized score persistence
-
-### 15. Chess Master CLI (`games/chess/`)
-Classic 8×8 FIDE chess with a built-in Negamax + Alpha-Beta + Quiescence AI engine:
-- **Complete FIDE Rules**: Castling (Kingside & Queenside with path-safety validation), En Passant, Interactive Pawn Promotion (`Q/R/B/N`), Check, Checkmate, Stalemate, 50-Move Rule, and Insufficient Material detection
-- **4 Play Modes (`M` key)**: vs AI Easy (Depth 2 + positional jitter), vs AI Medium (Depth 3 + Piece-Square Tables), vs AI Hard (Depth 4 + Quiescence search + MVV-LVA move ordering), and 2-Player Local Pass-and-Play
-- **Split-Screen 98×25 Viewport**: High-contrast 8×8 TrueColor board (dual algebraic badges, legal move dots, capture indicators) paired with a live Match Dashboard (captured piece trays, material advantage, algebraic SAN move log)
-- **Tactical Tools**: 256-half-move undo stack (`U`/`Z` rewinds full player + AI turn), live AI Hint Advisor (`H`), Board Flip (`F`), and full keyboard + mouse point-and-click controls
-
-### 16. Jigsaw Snap CLI (`games/jigsaw/`)
-Cozy pick-and-place pixel art jigsaw puzzle featuring:
-- **4×4 Target Board with Snap Mechanics**: Pick pieces from the tray and place onto the board (`A1`–`D4`); correct pieces lock in with a golden checkmark!
-- **5 Curated Art & Number Themes (`T` key)**: Sunset Peak, Cyber Citadel, Space Voyager, Cozy Tabby Cat, and Chroma Matrix numbers
-- **Dual Controls**: Point-and-click mouse support or full keyboard cursor navigation (`WASD`/Arrows, `Space` place, `Tab` focus, `X` return)
-- **Assists & Solvers**: Smart hint assistant (`H`), full artwork reference preview toggle (`P`), and deep 128-step undo (`U`)
-- **Centralized Score Tracking**: Tracks puzzles solved, fewest moves, and best time in `arcade_scores.ini`
-
-### 17. Conway's Game of Life CLI (`games/life/`)
-Interactive cellular automaton simulation featuring:
-- **540-Cell Split Arena (30×18)**: 60 character columns × 18 rows, perfectly sized for 120×30 terminals
-- **Dynamic Cell Age Heat Palette**: Newborn (Cyan), Young (Emerald Lime), Mature (Golden Amber), and Ancient (Magenta)
-- **10 Famous Pattern Presets (`P` & `X`)**: Glider, LWSS, Blinker, Toad, Beacon, Pulsar, Pentadecathlon, R-pentomino, Acorn, Beehive & Loaf
-- **Boundary Control (`M` key)**: Toroidal wrap-around or bounded edge walls
-- **Interactive Editing & Time Travel**: Point-and-click mouse drawing/erasing, single-step advance (`.`), and 128-generation reverse undo (`U`)
-- **Centralized Score Tracking**: Peak population and cumulative generations stored in `arcade_scores.ini`
+| Game | Directory | Description | Key Mechanics |
+|---|---|---|---|
+| **Tetris** | `games/tetris/` | Classic Guideline falling-block puzzle | Super Rotation System (SRS), 7-bag randomizer, ghost projection, hold piece |
+| **2048** | `games/2048/` | Tile-sliding power-of-two puzzle | 32-step undo, TrueColor tile palettes, win continuation |
+| **Minesweeper** | `games/minesweeper/` | Tactical minefield sweeper | First-click safety, flood-fill, chord reveal, 3 difficulty tiers |
+| **Cyberpunk Snake** | `games/snake/` | Retro-futuristic light-cycle snake | Synthwave gradient, cyber food chips, solid wall vs. toroidal wrap modes |
+| **Space Invaders** | `games/invaders/` | Classic arcade alien shooter | 32-alien swarm, 4 destructible defense bunkers, mystery UFO bonus passes |
+| **Sudoku** | `games/sudoku/` | Procedural logic number puzzle | 4 difficulty tiers, candidate notes, inspector panel, 64-step undo stack |
+| **Neon Bricks Breaker** | `games/breaker/` | Physics-based brick breaking arena | Mouse laser trajectory aiming, streaming swarms, 3x turbo mode |
+| **Classic Wood Block** | `games/block/` | 10x10 wooden polyomino puzzle | Mouse drag-and-drop, horizontal and vertical cross clears, auto-save |
+| **Classic Pong** | `games/pong/` | Retro table tennis simulator | 60 FPS physics, 3 CPU difficulty levels, first-to-11 match rules |
+| **Cyber Citadel Typing** | `games/typing/` | Space defense typing shooter | 5,800+ word dictionary, 4 enemy variants, live WPM and accuracy metrics |
+| **Wordle CLI** | `games/wordle/` | 5-letter daily word guesser | Official two-pass rules, QWERTY clue tracker, streak statistics |
+| **Flappy Bird** | `games/flappy/` | Precision flight obstacle avoider | Gravity impulses, parallax twilight backdrop, 4-tier medal achievements |
+| **Blackjack 21** | `games/blackjack/` | Casino table card game | 6-deck shoe, natural 21 (3:2), pair splits, double down, insurance, surrender |
+| **Klondike Solitaire** | `games/solitaire/` | Classic patience card game | 7 tableau columns, draw-1 waste recycle, 64-step undo, auto-solve |
+| **Chess Master** | `games/chess/` | FIDE rules with Negamax AI | 3 AI difficulty tiers, Quiescence search, split-screen match dashboard, undo |
+| **Jigsaw Snap** | `games/jigsaw/` | Pixel art pick-and-place puzzle | 4x4 snap board, 5 artwork themes, hint solver, full preview toggle |
+| **Conway's Life** | `games/life/` | Interactive cellular automaton | Dynamic age heat palette, 10 pattern presets, mouse drawing, time travel |
 
 ---
 
@@ -181,11 +59,14 @@ All 3D executables are output to `gyro/bin/`. Detailed controls and mathematical
 ## 24-Bit TrueColor ASCII Video Player (`ascii_video/`)
 
 Located in `ascii_video/`, this Python tool converts and streams MP4 video files directly in terminal emulators using 24-bit TrueColor ANSI escape sequences:
+- **C-Accelerated Serialization**: Sub-millisecond ANSI TrueColor serialization compiled via GCC to shared library (`.dll`/`.so`) with color delta thresholding and NumPy fallback.
+- **Multithreaded Prefetch Pipeline**: Decouples video decoding and frame conversion across multiple CPU cores for high-throughput playback.
+- **Clock-Synchronized Pacing**: Ties playback strictly to `time.perf_counter()` with automatic frame dropping to eliminate slow-motion playback on large displays.
 - **Dynamic Resolution Scaling**: Continuously queries `shutil.get_terminal_size()` and adapts video grid dimensions in real time when resizing or zooming (Ctrl +/-).
 - **Aspect Ratio Compensation**: Monospace character cells (~0.5 width-to-height ratio) are factored into area-downsampling (`cv2.INTER_AREA`) to preserve undistorted video geometry.
 - **Perceptual Luminance & Contrast**: Computes ITU-R BT.601 luminance ($Y = 0.299R + 0.587G + 0.114B$) with interactive contrast scaling.
 - **Directional Sobel Edges**: Detects spatial gradients and discretizes orientations into directional glyphs (`-`, `|`, `/`, `\`), composited with density ramps in hybrid mode.
-- **Zero-Flicker Rendering**: Single in-place frame buffer write (`\x1b[H`) with trailing line clears (`\x1b[K`) and precision frame pacing (`time.perf_counter()`).
+- **Zero-Flicker Rendering**: Single in-place frame buffer write (`\x1b[H`) with trailing line clears (`\x1b[K`).
 - **Interactive Controls**: Non-blocking keyboard controls for pause/resume (`Space`), glyph mode toggle (`M`), contrast adjust (`+` / `-`), seek (`[` / `]`), restart (`R`), and quit (`Q` / `Esc`).
 
 ### Running the ASCII Video Player
